@@ -317,7 +317,7 @@ document.getElementById('processBtn').addEventListener('click', async function (
   }
 
   if (csoFile) {
-    await processCsvFile(csoFile, "CSO Status");
+    await processGNProCSOFile(csoFile);
     csoFile = null;
     document.getElementById('csoInput').value = "";
   }
@@ -495,6 +495,114 @@ function processCsvFile(file, targetSheetName) {
   });
 }
 
+function parseGNProCSV(text) {
+  const rows = XLSX.utils.sheet_to_json(
+    XLSX.read(text, { type: "string" }).Sheets.Sheet1,
+    { header: 1, raw: true }
+  );
+
+  const map = new Map();
+  rows.slice(1).forEach(r => {
+    const caseId = cleanCell(r[0]);
+    if (!caseId) return;
+
+    map.set(caseId, {
+      status: formatSentenceCase(cleanCell(r[2])),
+      tracking: cleanCell(r[3])
+    });
+  });
+
+  return map;
+}
+
+async function processGNProCSOFile(file) {
+  const store = getStore("readonly");
+  const allData = await new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const dump = allData.find(r => r.sheetName === "Dump")?.rows || [];
+  const so = allData.find(r => r.sheetName === "SO")?.rows || [];
+  const oldCso = allData.find(r => r.sheetName === "CSO Status")?.rows || [];
+
+  // Build GNPro CSV map
+  const csvText = await file.text();
+  const gnproMap = parseGNProCSV(csvText);
+
+  const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+  const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
+
+  const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
+  const soDateIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
+  const soOrderIdx = TABLE_SCHEMAS["SO"].indexOf("Order Reference ID");
+
+  const oldCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+  const oldStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+  const oldTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+
+  // 1️⃣ Offsite cases
+  const offsiteCases = [
+    ...new Set(
+      dump
+        .filter(r => normalizeText(r[dumpResIdx]) === "offsite solution")
+        .map(r => r[dumpCaseIdx])
+    )
+  ];
+
+  const finalRows = [];
+
+  offsiteCases.forEach(caseId => {
+    const soRows = so.filter(r => r[soCaseIdx] === caseId);
+    if (!soRows.length) return;
+
+    const latestSO = soRows.sort((a, b) =>
+      new Date(b[soDateIdx]) - new Date(a[soDateIdx])
+    )[0];
+
+    const cso = stripOrderSuffix(latestSO[soOrderIdx]);
+
+    let status = "Not Found";
+    let tracking = "";
+
+    const oldRow = oldCso.find(r => r[oldCaseIdx] === caseId);
+    if (oldRow) {
+      const oldStatus = normalizeText(oldRow[oldStatusIdx]);
+      if (
+        oldStatus === "delivered" ||
+        oldStatus === "order cancelled, not to be reopened"
+      ) {
+        status = formatSentenceCase(oldRow[oldStatusIdx]);
+        tracking = oldRow[oldTrackIdx];
+        finalRows.push([caseId, cso, status, tracking]);
+        return;
+      }
+    }
+
+    const csvRow = gnproMap.get(caseId);
+    if (csvRow) {
+      status = csvRow.status;
+      tracking = csvRow.tracking;
+    }
+
+    finalRows.push([caseId, cso, status, tracking]);
+  });
+
+  // Update UI
+  const dt = dataTablesMap["CSO Status"];
+  dt.clear();
+  finalRows.forEach(r => dt.row.add(["", ...r]));
+  dt.draw(false);
+
+  // Save to IndexedDB
+  const writeStore = getStore("readwrite");
+  writeStore.put({
+    sheetName: "CSO Status",
+    rows: finalRows,
+    lastUpdated: new Date().toISOString()
+  });
+}
+
 function loadDataFromDB() {
   const store = getStore("readonly");
   const request = store.getAll();
@@ -660,6 +768,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
