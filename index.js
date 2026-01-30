@@ -80,7 +80,7 @@ const TABLE_SCHEMAS = {
 };
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "sheets";
 
 let db = null;
@@ -391,6 +391,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
