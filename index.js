@@ -272,11 +272,23 @@ function switchSheet(sheetName) {
   });
 
   Object.keys(tablesMap).forEach(name => {
-    tablesMap[name].style.display = name === sheetName ? 'block' : 'none';
+    const wrapper = tablesMap[name];
+    const isActive = name === sheetName;
+
+    wrapper.style.display = isActive ? 'block' : 'none';
+
+    if (isActive) {
+      const table = wrapper.querySelector('table');
+      const dataTable = $(table).DataTable();
+
+      // CRITICAL: force DataTables to recalc columns
+      dataTable.columns.adjust().draw(false);
+    }
   });
 }
 
 document.addEventListener('DOMContentLoaded', initEmptyTables);
+
 
 
 
