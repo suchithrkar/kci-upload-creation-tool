@@ -78,6 +78,60 @@ const TABLE_SCHEMAS = {
   ]
 };
 
+function initEmptyTables() {
+  const container = document.getElementById('tablesContainer');
+  container.innerHTML = '';
+
+  const tabsDiv = document.createElement('div');
+  tabsDiv.className = 'sheet-tabs';
+  container.appendChild(tabsDiv);
+
+  let first = true;
+
+  Object.keys(TABLE_SCHEMAS).forEach(sheetName => {
+    const headers = TABLE_SCHEMAS[sheetName];
+
+    const tableWrapper = document.createElement('div');
+    tableWrapper.style.display = first ? 'block' : 'none';
+    tableWrapper.dataset.sheet = sheetName;
+
+    const table = document.createElement('table');
+    table.className = 'display';
+
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    headers.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+
+    $(table).DataTable({
+      pageLength: 25,
+      scrollX: true,
+      destroy: true
+    });
+
+    tablesMap[sheetName] = tableWrapper;
+
+    const tab = document.createElement('div');
+    tab.className = 'sheet-tab' + (first ? ' active' : '');
+    tab.textContent = sheetName;
+    tab.onclick = () => switchSheet(sheetName);
+    tabsDiv.appendChild(tab);
+
+    first = false;
+  });
+}
+
 function cleanCell(value) {
   if (value === null || value === undefined) return "";
 
@@ -150,12 +204,6 @@ document.getElementById('processBtn').addEventListener('click', function () {
 });
 
 function buildSheetTables(workbook) {
-  const container = document.getElementById('tablesContainer');
-  container.innerHTML = '';
-
-  const tabsDiv = document.createElement('div');
-  tabsDiv.className = 'sheet-tabs';
-  container.appendChild(tabsDiv);
 
   const progressBar = document.getElementById('progressBar');
   const statusText = document.getElementById('statusText');
@@ -196,46 +244,18 @@ function buildSheetTables(workbook) {
         return cleanedRow;
       });
   
-      const tableWrapper = document.createElement('div');
-      tableWrapper.style.display = index === 0 ? 'block' : 'none';
-      tableWrapper.dataset.sheet = sheetName;
-  
-      const table = document.createElement('table');
-      table.className = 'display';
-  
-      const thead = document.createElement('thead');
-      const tr = document.createElement('tr');
-      headers.forEach(h => {
-        const th = document.createElement('th');
-        th.textContent = h;
-        tr.appendChild(th);
-      });
-      thead.appendChild(tr);
-      table.appendChild(thead);
-  
-      const tbody = document.createElement('tbody');
+      const tableWrapper = tablesMap[sheetName];
+      if (!tableWrapper) continue;
+      
+      const table = tableWrapper.querySelector('table');
+      const dataTable = $(table).DataTable();
+      dataTable.clear();
+      
       rows.forEach(r => {
-        const rowTr = document.createElement('tr');
-        r.forEach(c => {
-          const td = document.createElement('td');
-          td.textContent = c || '';
-          rowTr.appendChild(td);
-        });
-        tbody.appendChild(rowTr);
+        dataTable.row.add(r);
       });
-      table.appendChild(tbody);
-  
-      tableWrapper.appendChild(table);
-      container.appendChild(tableWrapper);
-  
-      $(table).DataTable({ pageLength: 25, scrollX: true });
-      tablesMap[sheetName] = tableWrapper;
-  
-      const tab = document.createElement('div');
-      tab.className = 'sheet-tab' + (index === 0 ? ' active' : '');
-      tab.textContent = sheetName;
-      tab.onclick = () => switchSheet(sheetName);
-      tabsDiv.appendChild(tab);
+      
+      dataTable.draw(false);
   
       processed++;
       const percent = Math.round((processed / sheetNames.length) * 100);
@@ -257,6 +277,7 @@ function switchSheet(sheetName) {
   });
 }
 
+document.addEventListener('DOMContentLoaded', initEmptyTables);
 
 
 
