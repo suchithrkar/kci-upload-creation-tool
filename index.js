@@ -399,7 +399,11 @@ function switchSheet(sheetName) {
 document.addEventListener('DOMContentLoaded', async () => {
   await openDB();
   initEmptyTables();
-  loadDataFromDB();
+
+  // IMPORTANT: wait for DataTables to fully initialize
+  requestAnimationFrame(() => {
+    loadDataFromDB();
+  });
 });
 
 const themeToggle = document.getElementById('themeToggle');
@@ -418,6 +422,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
