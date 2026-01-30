@@ -1,6 +1,82 @@
 let selectedFile = null;
 let workbookCache = null;
 let tablesMap = {};
+const TABLE_SCHEMAS = {
+  "Dump": [
+    "Case ID",
+    "Full Name (Primary Contact) (Contact)",
+    "Created On",
+    "Created By",
+    "Modified On",
+    "Business Segment",
+    "Country",
+    "Incoming Channel",
+    "Case Resolution Code",
+    "Full Name (Owning User) (User)",
+    "Email Status",
+    "Case Ready for Closure",
+    "Requires Auto-Close",
+    "Is Order Created",
+    "Queue",
+    "OTC Code",
+    "Product Serial Number",
+    "ProductName"
+  ],
+
+  "WO": [
+    "Case ID",
+    "Work Order Number",
+    "Business Segment",
+    "Service Account",
+    "Case Status (Case ID) (Case)",
+    "System Status",
+    "Created On",
+    "Workgroup (Created By) (User)",
+    "Country",
+    "Resolution Notes/ Diagnostics"
+  ],
+
+  "MO": [
+    "Order Number",
+    "Case ID",
+    "Created On",
+    "Order Status",
+    "Order Type",
+    "Ready For Closure Date"
+  ],
+
+  "MO Items": [
+    "Material Order",
+    "MO Line Items Name",
+    "Part Number",
+    "Description",
+    "Tracking Number",
+    "Created On",
+    "Tracking Url"
+  ],
+
+  "SO": [
+    "Case ID",
+    "Service Status",
+    "Date and Time Submitted",
+    "Name",
+    "Order Reference ID"
+  ],
+
+  "Closed Cases": [
+    "Case ID",
+    "Created On",
+    "Modified By",
+    "Modified On",
+    "Case Closed Date",
+    "Case Resolution Code",
+    "Created By",
+    "Incoming Channel",
+    "Owner",
+    "Country",
+    "OTC Code"
+  ]
+};
 
 function cleanCell(value) {
   if (value === null || value === undefined) return "";
@@ -97,19 +173,28 @@ function buildSheetTables(workbook) {
   
       if (json.length === 0) continue;
   
-      const headers = json[0].slice(3).map(h => cleanCell(h));
-      const rows = json.slice(1).map(row =>
-        row.slice(3).map(cell => {
+      const headers = TABLE_SCHEMAS[sheetName];
+      if (!headers) continue; // ignore unknown sheets safely
+      const rows = json.slice(1).map(row => {
+        const cleanedRow = [];
+        const excelRow = row.slice(3);
+      
+        for (let i = 0; i < headers.length; i++) {
+          let cell = excelRow[i];
+      
           if (typeof cell === 'number' && cell > 40000 && cell < 60000) {
             try {
-              return formatDate(excelDateToJSDate(cell));
+              cleanedRow.push(formatDate(excelDateToJSDate(cell)));
             } catch {
-              return cleanCell(cell);
+              cleanedRow.push(cleanCell(cell));
             }
+          } else {
+            cleanedRow.push(cleanCell(cell));
           }
-          return cleanCell(cell);
-        })
-      );
+        }
+      
+        return cleanedRow;
+      });
   
       const tableWrapper = document.createElement('div');
       tableWrapper.style.display = index === 0 ? 'block' : 'none';
@@ -171,6 +256,7 @@ function switchSheet(sheetName) {
     tablesMap[name].style.display = name === sheetName ? 'block' : 'none';
   });
 }
+
 
 
 
