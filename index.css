@@ -40,3 +40,46 @@ table.dataTable {
   width: 100% !important;
   background: #fff;
 }
+
+#processBtn {
+  margin-left: 10px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#statusText {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+#progressBarContainer {
+  margin-top: 8px;
+  width: 100%;
+  background: #ddd;
+  height: 10px;
+  display: none;
+}
+
+#progressBar {
+  height: 100%;
+  width: 0%;
+  background: #005f9e;
+}
+
+.sheet-tabs {
+  margin-bottom: 15px;
+}
+
+.sheet-tab {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #e0e0e0;
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+.sheet-tab.active {
+  background: #005f9e;
+  color: #fff;
+}
