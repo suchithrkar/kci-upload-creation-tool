@@ -405,6 +405,12 @@ function processExcelFile(file, allowedSheets) {
   });
 }
 
+function formatSentenceCase(value) {
+  if (!value) return "";
+  const str = String(value).trim().toLowerCase();
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 function processCsvFile(file, targetSheetName) {
   return new Promise(resolve => {
     const reader = new FileReader();
@@ -426,9 +432,18 @@ function processCsvFile(file, targetSheetName) {
       const headers = TABLE_SCHEMAS[targetSheetName];
       const dataRows = rows.slice(1).map(r => {
         const cleaned = [];
+      
         for (let i = 0; i < headers.length; i++) {
-          cleaned.push(cleanCell(r[i]));
+          let cellValue = cleanCell(r[i]);
+      
+          // ✅ Apply sentence case ONLY for CSO Status → Status column
+          if (targetSheetName === "CSO Status" && headers[i] === "Status") {
+            cellValue = formatSentenceCase(cellValue);
+          }
+      
+          cleaned.push(cellValue);
         }
+      
         return cleaned;
       });
 
@@ -521,6 +536,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
