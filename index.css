@@ -1,34 +1,37 @@
 /* ===== GLOBAL ===== */
 body {
   margin: 0;
-  font-family: "Segoe UI", SegoeUI, Arial, Helvetica, sans-serif;
-  background: #f2f2f2;
-  color: #2b2b2b;
-  font-size: 14px;
+  font-family: "Segoe UI", SegoeUI, Arial, sans-serif;
+  background: #0f1117;               /* Dark base like KCI */
+  color: #e6e6e6;
+  font-size: 13px;
 }
 
 /* ===== HEADER ===== */
 header {
-  background: #004b87;
+  background: #151923;               /* EXACT KCI color */
   color: #ffffff;
-  padding: 18px 24px;
+  padding: 20px 24px;
   font-size: 20px;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  letter-spacing: 0.2px;
 }
 
-/* ===== LAYOUT ===== */
+/* ===== CONTENT AREA ===== */
 .container {
-  padding: 24px;
+  background: #f2f2f2;               /* Light workspace */
+  color: #1f1f1f;
+  padding: 20px;
+  min-height: calc(100vh - 64px);
 }
 
-/* ===== UPLOAD CARD ===== */
+/* ===== UPLOAD BAR ===== */
 .upload-box {
   background: #ffffff;
-  padding: 16px;
-  border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 4px;
+  border: 1px solid #d6d6d6;
+  margin-bottom: 16px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -36,95 +39,103 @@ header {
 }
 
 input[type="file"] {
-  font-size: 13px;
+  font-size: 12px;
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTON ===== */
 #processBtn {
-  background: #0076ce;
+  background: #151923;
   color: #ffffff;
   border: none;
-  border-radius: 4px;
-  padding: 7px 16px;
-  font-size: 13px;
+  padding: 6px 14px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
 #processBtn:disabled {
-  background: #b5c7d8;
+  background: #8a8d93;
   cursor: not-allowed;
 }
 
 /* ===== STATUS / PROGRESS ===== */
 #statusText {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 6px;
   font-weight: 600;
+  font-size: 12px;
 }
 
 #progressBarContainer {
   width: 100%;
-  height: 8px;
-  background: #dcdcdc;
-  border-radius: 4px;
-  overflow: hidden;
+  height: 6px;
+  background: #d0d0d0;
+  margin-top: 6px;
   display: none;
 }
 
 #progressBar {
   height: 100%;
   width: 0%;
-  background: #0076ce;
-  transition: width 0.2s ease;
+  background: #151923;
 }
 
 /* ===== SHEET TABS ===== */
 .sheet-tabs {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .sheet-tab {
   display: inline-block;
-  padding: 6px 14px;
+  padding: 5px 12px;
   margin-right: 6px;
-  background: #e6e6e6;
-  border-radius: 16px;
+  background: #e0e0e0;
+  color: #222;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 13px;
 }
 
 .sheet-tab.active {
-  background: #0076ce;
+  background: #151923;
   color: #ffffff;
 }
 
 /* ===== TABLES ===== */
 table.dataTable {
+  width: 100% !important;
   background: #ffffff;
+  color: #1f1f1f;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
+/* TABLE HEADER — EXACT KCI STYLE */
 table.dataTable thead th {
-  background: #f4f6f8;
-  font-weight: 600;
-  border-bottom: 1px solid #d0d0d0;
-}
-
-table.dataTable tbody td {
-  border-bottom: 1px solid #eeeeee;
+  background: #f0f1f3;
+  color: #333;
+  text-transform: uppercase;         /* IMPORTANT */
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid #cfcfcf;
   padding: 6px 8px;
 }
 
-/* ===== DATATABLES CONTROLS ===== */
-.dataTables_wrapper .dataTables_filter input,
-.dataTables_wrapper .dataTables_length select {
-  font-size: 13px;
-  padding: 4px;
+/* TABLE BODY */
+table.dataTable tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e4e4e4;
+  white-space: nowrap;               /* Matches KCI */
 }
 
-.dataTables_wrapper .dataTables_info,
-.dataTables_wrapper .dataTables_paginate {
+/* DATATABLES CONTROLS */
+.dataTables_wrapper {
   font-size: 12px;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  font-size: 12px;
+  padding: 3px;
 }
