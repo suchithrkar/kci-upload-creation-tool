@@ -77,6 +77,18 @@ const TABLE_SCHEMAS = {
     "Country",
     "OTC Code"
   ]
+
+  "CSO Status": [
+    "Case ID",
+    "CSO",
+    "Status",
+    "Tracking Number"
+  ],
+  
+  "Delivery Details": [
+    "CaseID",
+    "CurrentStatus"
+  ]
 };
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
@@ -391,6 +403,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
