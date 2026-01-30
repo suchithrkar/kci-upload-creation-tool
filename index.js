@@ -194,7 +194,6 @@ document.getElementById('processBtn').addEventListener('click', function () {
 
   reader.onload = function (evt) {
     const data = new Uint8Array(evt.target.result);
-    tablesMap = {};
     workbookCache = XLSX.read(data, { type: 'array' });
 
     buildSheetTables(workbookCache);
@@ -278,6 +277,7 @@ function switchSheet(sheetName) {
 }
 
 document.addEventListener('DOMContentLoaded', initEmptyTables);
+
 
 
 
