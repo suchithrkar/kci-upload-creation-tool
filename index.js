@@ -81,7 +81,7 @@ const TABLE_SCHEMAS = {
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
 const DB_VERSION = 1;
-const STORE_NAME = "cases";
+const STORE_NAME = "sheets";
 
 let db = null;
 
@@ -92,7 +92,7 @@ function openDB() {
     request.onupgradeneeded = function (e) {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "caseId" });
+        db.createObjectStore(STORE_NAME, { keyPath: "sheetName" });
       }
     };
 
@@ -306,33 +306,11 @@ function buildSheetTables(workbook) {
       dataTable.draw(false);
 
       const store = getStore("readwrite");
-      
-      rows.forEach(row => {
-        const caseIdIndex = headers.indexOf("Case ID");
-        if (caseIdIndex === -1) return;
-      
-        const caseId = row[caseIdIndex];
-        if (!caseId) return;
-      
-        const getReq = store.get(caseId);
-      
-        getReq.onsuccess = function () {
-          const existing = getReq.result || { caseId };
-      
-        const safeRow = normalizeRowToSchema(row, sheetName);
-        
-        if (Array.isArray(existing[sheetName])) {
-          // Replace entire array for this upload cycle
-          existing[sheetName] = [safeRow];
-        } else if (existing[sheetName]) {
-          existing[sheetName] = safeRow;
-        } else {
-          existing[sheetName] = safeRow;
-        }
-      
-          existing.lastUpdated = new Date().toISOString();
-          store.put(existing);
-        };
+
+      store.put({
+        sheetName: sheetName,
+        rows: rows.map(r => normalizeRowToSchema(r, sheetName)),
+        lastUpdated: new Date().toISOString()
       });
       
       processed++;
@@ -352,26 +330,15 @@ function loadDataFromDB() {
   request.onsuccess = function () {
     const records = request.result;
 
-    Object.keys(TABLE_SCHEMAS).forEach(sheetName => {
-      const wrapper = tablesMap[sheetName];
-      if (!wrapper) return;
-
-      const table = wrapper.querySelector("table");
+    records.forEach(record => {
+      const sheetName = record.sheetName;
       const dt = dataTablesMap[sheetName];
+      if (!dt) return;
+
       dt.clear();
-
-      records.forEach(rec => {
-        if (!rec[sheetName]) return;
-
-        if (Array.isArray(rec[sheetName])) {
-          rec[sheetName].forEach(row => {
-            dt.row.add(normalizeRowToSchema(row, sheetName));
-          });
-        } else {
-          dt.row.add(normalizeRowToSchema(rec[sheetName], sheetName));
-        }
+      record.rows.forEach(row => {
+        dt.row.add(row);
       });
-
       dt.draw(false);
     });
   };
@@ -424,6 +391,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
