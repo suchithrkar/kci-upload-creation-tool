@@ -78,7 +78,7 @@ const TABLE_SCHEMAS = {
     "Owner",
     "Country",
     "OTC Code"
-  ]
+  ],
 
   "CSO Status": [
     "Case ID",
@@ -473,6 +473,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
