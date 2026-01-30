@@ -140,7 +140,7 @@ function cleanCell(value) {
   // Remove non-breaking spaces
   str = str.replace(/\u00A0/g, ' ');
 
-  // Remove hidden control characters (SAP / Excel junk)
+  // - Remove hidden control characters (SAP / Excel junk)
   str = str.replace(/[\u0000-\u001F\u007F]/g, '');
 
   return str.trim();
@@ -288,6 +288,7 @@ function switchSheet(sheetName) {
 }
 
 document.addEventListener('DOMContentLoaded', initEmptyTables);
+
 
 
 
