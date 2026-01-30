@@ -290,13 +290,13 @@ document.getElementById('processBtn').addEventListener('click', async function (
   }
 
   if (csoFile) {
-    await processExcelFile(csoFile, ["CSO Status"]);
+    await processCsvFile(csoFile, "CSO Status");
     csoFile = null;
     document.getElementById('csoInput').value = "";
   }
-
+  
   if (trackingFile) {
-    await processExcelFile(trackingFile, ["Delivery Details"]);
+    await processCsvFile(trackingFile, "Delivery Details");
     trackingFile = null;
     document.getElementById('trackingInput').value = "";
   }
@@ -405,6 +405,54 @@ function processExcelFile(file, allowedSheets) {
   });
 }
 
+function processCsvFile(file, targetSheetName) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const text = e.target.result;
+
+      // Parse CSV to rows
+      const rows = XLSX.utils.sheet_to_json(
+        XLSX.read(text, { type: "string" }).Sheets.Sheet1,
+        { header: 1, raw: true }
+      );
+
+      if (!rows.length) {
+        resolve();
+        return;
+      }
+
+      const headers = TABLE_SCHEMAS[targetSheetName];
+      const dataRows = rows.slice(1).map(r => {
+        const cleaned = [];
+        for (let i = 0; i < headers.length; i++) {
+          cleaned.push(cleanCell(r[i]));
+        }
+        return cleaned;
+      });
+
+      // Update UI
+      const dt = dataTablesMap[targetSheetName];
+      dt.clear();
+      dataRows.forEach(r => dt.row.add(r));
+      dt.draw(false);
+
+      // Save to IndexedDB
+      const store = getStore("readwrite");
+      store.put({
+        sheetName: targetSheetName,
+        rows: dataRows,
+        lastUpdated: new Date().toISOString()
+      });
+
+      resolve();
+    };
+
+    reader.readAsText(file);
+  });
+}
+
 function loadDataFromDB() {
   const store = getStore("readonly");
   const request = store.getAll();
@@ -473,6 +521,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
