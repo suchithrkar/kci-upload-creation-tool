@@ -388,7 +388,7 @@ function buildSheetTables(workbook) {
       dataTable.clear();
       
       rows.forEach(r => {
-        dataTable.row.add(r);
+        dataTable.row.add(["", ...r]); // S.No placeholder
       });
       
       dataTable.draw(false);
@@ -477,7 +477,7 @@ function processCsvFile(file, targetSheetName) {
       // Update UI
       const dt = dataTablesMap[targetSheetName];
       dt.clear();
-      dataRows.forEach(r => dt.row.add(r));
+      dataRows.forEach(r => dt.row.add(["", ...r])); // S.No placeholder
       dt.draw(false);
 
       // Save to IndexedDB
@@ -509,7 +509,7 @@ function loadDataFromDB() {
 
       dt.clear();
       record.rows.forEach(row => {
-        dt.row.add(row);
+        dt.row.add(["", ...row]); // S.No placeholder
       });
       dt.draw(false);
     });
@@ -660,6 +660,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
