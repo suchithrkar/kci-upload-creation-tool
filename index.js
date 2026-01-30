@@ -92,6 +92,7 @@ function initEmptyTables() {
     const headers = TABLE_SCHEMAS[sheetName];
 
     const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-scroll-wrapper';
     tableWrapper.style.display = first ? 'block' : 'none';
     tableWrapper.dataset.sheet = sheetName;
 
@@ -305,6 +306,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
