@@ -1,15 +1,40 @@
+/* ===== THEME VARIABLES ===== */
+body[data-theme="dark"] {
+  --bg-app: #0f1117;
+  --bg-main: #0f1117;
+  --bg-card: #151923;
+  --bg-table: #ffffff;
+  --bg-header: #151923;
+  --bg-tab: #2a2f3a;
+
+  --text-main: #e6e6e6;
+  --text-dark: #1f1f1f;
+}
+
+body[data-theme="light"] {
+  --bg-app: #f2f2f2;
+  --bg-main: #f2f2f2;
+  --bg-card: #ffffff;
+  --bg-table: #ffffff;
+  --bg-header: #151923;
+  --bg-tab: #e0e0e0;
+
+  --text-main: #1f1f1f;
+  --text-dark: #1f1f1f;
+}
+
 /* ===== GLOBAL ===== */
 body {
   margin: 0;
   font-family: "Segoe UI", SegoeUI, Arial, sans-serif;
-  background: #0f1117;               /* Dark base like KCI */
-  color: #e6e6e6;
+  background: var(--bg-app);
+  color: var(--text-main);
   font-size: 13px;
 }
 
 /* ===== HEADER ===== */
 header {
-  background: #151923;               /* EXACT KCI color */
+  background: var(--bg-header);
   color: #ffffff;
   padding: 20px 24px;
   font-size: 20px;
@@ -27,7 +52,7 @@ header {
 
 /* ===== UPLOAD BAR ===== */
 .upload-box {
-  background: #ffffff;
+  background: var(--bg-card);
   padding: 14px 16px;
   border-radius: 4px;
   border: 1px solid #d6d6d6;
@@ -89,7 +114,7 @@ input[type="file"] {
   display: inline-block;
   padding: 5px 12px;
   margin-right: 6px;
-  background: #e0e0e0;
+  background: var(--bg-tab);
   color: #222;
   font-size: 12px;
   font-weight: 600;
@@ -97,14 +122,14 @@ input[type="file"] {
 }
 
 .sheet-tab.active {
-  background: #151923;
+  background: var(--bg-header);
   color: #ffffff;
 }
 
 /* ===== TABLES ===== */
 table.dataTable {
   width: 100% !important;
-  background: #ffffff;
+  background: var(--bg-table);
   color: #1f1f1f;
   border-collapse: collapse;
   font-size: 12px;
@@ -139,5 +164,14 @@ table.dataTable tbody td {
 .dataTables_wrapper .dataTables_length select {
   font-size: 12px;
   padding: 3px;
+}
+
+.table-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;     /* KEY */
+}
+
+.table-scroll-wrapper table {
+  min-width: max-content;
 }
 
