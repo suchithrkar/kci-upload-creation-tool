@@ -115,7 +115,8 @@ const TABLE_SCHEMAS = {
     "Part Name",
     "Serial Number",
     "Product Name",
-    "Email Status"
+    "Email Status",
+    "DNAP"
   ],
 
   "Closed Cases Report": [
@@ -1406,6 +1407,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
