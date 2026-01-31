@@ -323,7 +323,7 @@ document.getElementById('processBtn').addEventListener('click', async function (
   }
   
   if (trackingFile) {
-    await processCsvFile(trackingFile, "Delivery Details");
+    await processTrackingResultsFile(trackingFile);
     trackingFile = null;
     document.getElementById('trackingInput').value = "";
   }
@@ -846,6 +846,147 @@ async function buildCopyTrackingURLs() {
     .join("\n");
 }
 
+function parseTrackingResultsCSV(text) {
+  const rows = XLSX.utils.sheet_to_json(
+    XLSX.read(text, { type: "string" }).Sheets.Sheet1,
+    { header: 1, raw: true }
+  );
+
+  const map = new Map();
+
+  // Skip header
+  rows.slice(1).forEach(r => {
+    const caseId = cleanCell(r[0]);   // Column A
+    const status = cleanCell(r[1]);   // Column B (CurrentStatus)
+    if (!caseId) return;
+    map.set(caseId, status);
+  });
+
+  return map;
+}
+
+async function processTrackingResultsFile(file) {
+  const store = getStore("readonly");
+  const allData = await new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const dump = allData.find(r => r.sheetName === "Dump")?.rows || [];
+  const mo = allData.find(r => r.sheetName === "MO")?.rows || [];
+  const moItems = allData.find(r => r.sheetName === "MO Items")?.rows || [];
+  const cso = allData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  const oldDelivery = allData.find(r => r.sheetName === "Delivery Details")?.rows || [];
+
+  const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+  const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
+
+  const moCaseIdx = TABLE_SCHEMAS["MO"].indexOf("Case ID");
+  const moOrderIdx = TABLE_SCHEMAS["MO"].indexOf("Order Number");
+  const moCreatedIdx = TABLE_SCHEMAS["MO"].indexOf("Created On");
+  const moStatusIdx = TABLE_SCHEMAS["MO"].indexOf("Order Status");
+
+  const moItemOrderIdx = TABLE_SCHEMAS["MO Items"].indexOf("Material Order");
+  const moItemNameIdx = TABLE_SCHEMAS["MO Items"].indexOf("MO Line Items Name");
+  const moItemUrlIdx = TABLE_SCHEMAS["MO Items"].indexOf("Tracking Url");
+
+  const csoCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+  const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+
+  const oldDelCaseIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
+  const oldDelStatusIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
+
+  // --- Parse Tracking Results CSV ---
+  const csvText = await file.text();
+  const trackingCSVMap = parseTrackingResultsCSV(csvText);
+
+  // --- STEP 1A: Parts Shipped cases (MO Stage-1 logic) ---
+  const partsShippedCases = [
+    ...new Set(
+      dump
+        .filter(r => normalizeText(r[dumpResIdx]) === "parts shipped")
+        .map(r => r[dumpCaseIdx])
+    )
+  ];
+
+  const finalCaseSet = new Set();
+
+  partsShippedCases.forEach(caseId => {
+    const caseMOs = mo.filter(r => r[moCaseIdx] === caseId);
+    if (!caseMOs.length) return;
+
+    caseMOs.sort((a, b) => new Date(b[moCreatedIdx]) - new Date(a[moCreatedIdx]));
+    const latestTime = new Date(caseMOs[0][moCreatedIdx]);
+
+    const windowMOs = caseMOs.filter(r =>
+      Math.abs(new Date(r[moCreatedIdx]) - latestTime) <= 5 * 60 * 1000
+    );
+
+    windowMOs.sort(
+      (a, b) => getMOStatusPriority(a[moStatusIdx]) - getMOStatusPriority(b[moStatusIdx])
+    );
+
+    const selected = windowMOs[0];
+    const status = normalizeText(selected[moStatusIdx]);
+
+    if (status !== "closed" && status !== "pod") return;
+
+    // Ensure MO has tracking URL (-1 only)
+    const moNumber = selected[moOrderIdx];
+    const item = moItems.find(r =>
+      r[moItemOrderIdx] === moNumber &&
+      normalizeText(r[moItemNameIdx]).endsWith("- 1") &&
+      r[moItemUrlIdx]
+    );
+
+    if (!item) return;
+
+    finalCaseSet.add(caseId);
+  });
+
+  // --- STEP 1B: CSO Delivered cases ---
+  cso.forEach(r => {
+    if (normalizeText(r[csoStatusIdx]) === "delivered") {
+      finalCaseSet.add(r[csoCaseIdx]);
+    }
+  });
+
+  // --- STEP 2: Build Delivery Details rows ---
+  const finalRows = [];
+
+  finalCaseSet.forEach(caseId => {
+    // Priority 1: existing Delivery Details
+    const oldRow = oldDelivery.find(r => r[oldDelCaseIdx] === caseId);
+    if (oldRow && oldRow[oldDelStatusIdx]) {
+      finalRows.push([caseId, oldRow[oldDelStatusIdx]]);
+      return;
+    }
+
+    // Priority 2: Tracking Results CSV
+    if (trackingCSVMap.has(caseId)) {
+      finalRows.push([caseId, trackingCSVMap.get(caseId)]);
+      return;
+    }
+
+    // Fallback
+    finalRows.push([caseId, "No Status Found"]);
+  });
+
+  // --- Update UI ---
+  const dt = dataTablesMap["Delivery Details"];
+  dt.clear();
+  finalRows.forEach(r => dt.row.add(["", ...r]));
+  dt.draw(false);
+
+  // --- Save to IndexedDB ---
+  const writeStore = getStore("readwrite");
+  writeStore.put({
+    sheetName: "Delivery Details",
+    rows: finalRows,
+    lastUpdated: new Date().toISOString()
+  });
+}
+
 document.getElementById("copySoBtn").addEventListener("click", async () => {
   const output = await buildCopySOOrders();
 
@@ -920,6 +1061,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
