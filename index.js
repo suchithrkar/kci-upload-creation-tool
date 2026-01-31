@@ -84,7 +84,8 @@ const TABLE_SCHEMAS = {
     "Case ID",
     "CSO",
     "Status",
-    "Tracking Number"
+    "Tracking Number",
+    "Repair Status"
   ],
   
   "Delivery Details": [
@@ -457,6 +458,7 @@ function processCsvFile(file, targetSheetName) {
       }
 
       const headers = TABLE_SCHEMAS[targetSheetName];
+      const colCount = headers.length;
       const dataRows = rows.slice(1).map(r => {
         const cleaned = [];
       
@@ -508,7 +510,8 @@ function parseGNProCSV(text) {
 
     map.set(caseId, {
       status: formatSentenceCase(cleanCell(r[2])),
-      tracking: cleanCell(r[3])
+      tracking: cleanCell(r[3]),
+      repairStatus: cleanCell(r[4])
     });
   });
 
@@ -578,7 +581,13 @@ async function processGNProCSOFile(file) {
       ) {
         status = formatSentenceCase(oldRow[oldStatusIdx]);
         tracking = oldRow[oldTrackIdx];
-        finalRows.push([caseId, cso, status, tracking]);
+        finalRows.push([
+          caseId,
+          cso,
+          status,
+          tracking,
+          oldRow[4] || ""   // Repair Status (if exists)
+        ]);
         return;
       }
     }
@@ -589,7 +598,13 @@ async function processGNProCSOFile(file) {
       tracking = csvRow.tracking;
     }
 
-    finalRows.push([caseId, cso, status, tracking]);
+    finalRows.push([
+      caseId,
+      cso,
+      status,
+      tracking,
+      csvRow.repairStatus || ""
+    ]);
   });
 
   // Update UI
@@ -1177,6 +1192,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
