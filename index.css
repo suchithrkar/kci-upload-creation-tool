@@ -252,3 +252,58 @@ table.dataTable tbody td {
   cursor: pointer;
 }
 
+.sbd-modal {
+  width: 95%;
+  max-width: 1200px;
+}
+
+.sbd-periods {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.sbd-period {
+  flex: 1;
+  border: 1px solid #d6d6d6;
+  padding: 10px;
+  background: var(--bg-card);
+}
+
+.sbd-period h4 {
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.sbd-dates {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.sbd-dates input {
+  width: 100%;
+}
+
+.sbd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sbd-table th,
+.sbd-table td {
+  border: 1px solid #ccc;
+  padding: 4px;
+  font-size: 12px;
+}
+
+.sbd-table input {
+  width: 100%;
+}
+
+.sbd-add {
+  margin-top: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
