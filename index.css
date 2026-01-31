@@ -112,6 +112,17 @@ input[type="file"] {
   align-items: center;
 }
 
+.sheet-tabs-left {
+  display: flex;
+  gap: 6px;
+}
+
+.sheet-tabs-right {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
 .sheet-tab {
   display: inline-block;
   padding: 5px 12px;
@@ -121,13 +132,6 @@ input[type="file"] {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-}
-
-/* Push special tabs to the right */
-.sheet-tabs-right {
-  margin-left: auto;
-  display: flex;
-  gap: 6px;
 }
 
 .sheet-tab.active {
@@ -352,5 +356,6 @@ table.dataTable tbody td {
 .sbd-tbody-scroll {
   scrollbar-width: none; /* Firefox */
 }
+
 
 
