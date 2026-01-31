@@ -218,7 +218,7 @@ function cleanCell(value) {
   // Remove non-breaking spaces
   str = str.replace(/\u00A0/g, ' ');
 
-  // - Remove hidden control characters (SAP / Excel junk)
+  // Remove hidden control characters (SAP / Excel junk)
   str = str.replace(/[\u0000-\u001F\u007F]/g, '');
 
   return str.trim();
@@ -1201,6 +1201,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
