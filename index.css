@@ -124,8 +124,10 @@ input[type="file"] {
 }
 
 /* Push special tabs to the right */
-.sheet-tab-right {
+.sheet-tabs-right {
   margin-left: auto;
+  display: flex;
+  gap: 6px;
 }
 
 .sheet-tab.active {
@@ -350,4 +352,5 @@ table.dataTable tbody td {
 .sbd-tbody-scroll {
   scrollbar-width: none; /* Firefox */
 }
+
 
