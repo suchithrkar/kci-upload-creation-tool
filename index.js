@@ -1040,8 +1040,13 @@ function renderSbdModal(data) {
         <thead>
           <tr><th>Country</th><th>Cut Off Time</th><th></th></tr>
         </thead>
-        <tbody></tbody>
       </table>
+      
+      <div class="sbd-tbody-scroll">
+        <table class="sbd-table">
+          <tbody></tbody>
+        </table>
+      </div>
       <div class="sbd-add">+ Add Row</div>
     `;
 
@@ -1196,6 +1201,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
