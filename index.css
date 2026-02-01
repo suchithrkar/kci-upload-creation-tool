@@ -434,8 +434,7 @@ table.dataTable th.fixed-notes-col {
 /* ===== DATATABLE HORIZONTAL SCROLL (TABLE ONLY) ===== */
 
 /* --- DataTables layout --- */
-.dt-top,
-.dt-bottom {
+.dt-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -443,8 +442,24 @@ table.dataTable th.fixed-notes-col {
   padding: 12px 16px;
 }
 
+.dt-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 12px 16px;
+
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+
+  background: var(--bg-card);
+  border-top: 1px solid #d6d6d6;
+}
+
 .dt-middle {
   overflow-x: auto;
+  padding-bottom: 56.6px;
 }
 
 /* Let table fit container naturally unless it truly overflows */
@@ -467,6 +482,7 @@ table.dataTable th.fixed-notes-col {
 table.dataTable th {
   box-sizing: border-box;
 }
+
 
 
 
