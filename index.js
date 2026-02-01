@@ -521,7 +521,7 @@ function processExcelFile(file, allowedSheets) {
   return new Promise(resolve => {
     const reader = new FileReader();
 
-    reader.onload = function (evt) {
+    reader.onload = async function (evt) {
       const data = new Uint8Array(evt.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
 
@@ -1783,6 +1783,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
