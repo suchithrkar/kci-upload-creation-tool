@@ -138,6 +138,14 @@ const TABLE_SCHEMAS = {
   ]
 };
 
+// Dump sheet header display overrides (UI only)
+const DUMP_HEADER_DISPLAY_MAP = {
+  "Full Name (Primary Contact) (Contact)": "Customer Name",
+  "Full Name (Owning User) (User)": "Case Owner",
+  "ProductName": "Product Name",
+  "Product Serial Number": "Serial Number"
+};
+
 const DB_NAME = "KCI_CASE_TRACKER_DB";
 const DB_VERSION = 2;
 const STORE_NAME = "sheets";
@@ -226,7 +234,14 @@ function initEmptyTables() {
     // Actual headers
     headers.forEach(h => {
       const th = document.createElement('th');
-      th.textContent = h;
+    
+      // UI-only header rename for Dump sheet
+      if (sheetName === "Dump" && DUMP_HEADER_DISPLAY_MAP[h]) {
+        th.textContent = DUMP_HEADER_DISPLAY_MAP[h];
+      } else {
+        th.textContent = h;
+      }
+    
       tr.appendChild(th);
     });
 
@@ -1861,6 +1876,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
