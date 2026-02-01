@@ -461,7 +461,6 @@ table.dataTable th.fixed-notes-col {
 
 .dt-middle {
   overflow-x: auto;
-  padding-bottom: 56.6px;
 }
 
 /* Let table fit container naturally unless it truly overflows */
@@ -484,6 +483,7 @@ table.dataTable th.fixed-notes-col {
 table.dataTable th {
   box-sizing: border-box;
 }
+
 
 
 
