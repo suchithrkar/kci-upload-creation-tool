@@ -138,7 +138,7 @@ const TABLE_SCHEMAS = {
   ]
 };
 
-// Dump sheet header display overrides (UI only)
+// Dump sheet header display overrides (UI only) --
 const DUMP_HEADER_DISPLAY_MAP = {
   "Full Name (Primary Contact) (Contact)": "Customer Name",
   "Full Name (Owning User) (User)": "Case Owner",
@@ -1881,6 +1881,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
