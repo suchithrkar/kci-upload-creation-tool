@@ -52,15 +52,13 @@ header {
 
 /* ===== UPLOAD BAR ===== */
 .upload-box {
-  background: var(--bg-card);
-  padding: 14px 16px;
-  border-radius: 4px;
-  border: 1px solid #d6d6d6;
-  margin-bottom: 16px;
+  background: transparent;
+  border: none;
+  padding: 0;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-end;
+  gap: 16px;
 }
 
 input[type="file"] {
@@ -121,6 +119,7 @@ input[type="file"] {
   z-index: 50;
 
   background: var(--bg-main);
+  border-bottom: 1px solid #d6d6d6;
 }
 
 .sheet-tabs-left {
@@ -210,6 +209,14 @@ table.dataTable tbody td {
   margin-right: 14px;
 }
 
+.upload-group {
+  background: var(--bg-table);
+  border: 1px solid #d6d6d6;
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-width: 240px;
+}
+
 .upload-group label {
   font-size: 11px;
   font-weight: 600;
@@ -218,11 +225,12 @@ table.dataTable tbody td {
 }
 
 .action-bar {
-  background: var(--bg-card);
-  border: 1px solid #d6d6d6;
-  padding: 12px 16px;
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: none;
 }
 
 .action-bar button {
@@ -233,6 +241,20 @@ table.dataTable tbody td {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* Primary actions */
+#processRepairBtn {
+  background: #0f62fe;
+}
+
+/* Secondary actions */
+#copySoBtn,
+#copyTrackingBtn,
+#sbdBtn,
+#tlBtn,
+#marketBtn {
+  background: #151923;
 }
 
 /* Modal */
@@ -736,6 +758,39 @@ table.dataTable th {
 #marketModal .modal {
   width: fit-content;              /* 🔥 content-driven width */
   max-width: calc(100vw - 80px);   /* viewport safety */
+}
+
+/* ===== TOP CONTROL PANEL ===== */
+
+.control-panel {
+  background: var(--bg-card);
+  border: 1px solid #d6d6d6;
+  border-radius: 8px;
+  margin: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ===== TABLES SECTION ===== */
+
+#tablesContainer {
+  margin: 16px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid #d6d6d6;
+  overflow: hidden;
+}
+
+/* Subtle hover feedback */
+button:hover {
+  filter: brightness(1.05);
+}
+
+/* Section spacing consistency */
+.container > * {
+  box-sizing: border-box;
 }
 
 
