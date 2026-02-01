@@ -172,8 +172,14 @@ table.dataTable thead th {
   white-space: nowrap;
 
   position: sticky;
-  top: 96.8px;              /* sheet-tabs + dt-top */
+  top: calc(50px + 48px);   /* dt-top + sheet-tabs */
   z-index: 40;
+}
+
+table.dataTable thead {
+  position: sticky;
+  top: calc(50px + 48px);
+  z-index: 30;
 }
 
 /* TABLE BODY */
@@ -487,7 +493,6 @@ table.dataTable th.fixed-notes-col {
 
 .dt-middle {
   overflow-x: auto;
-  scroll-margin-top: 96.8px;
 }
 
 /* Let table fit container naturally unless it truly overflows */
@@ -510,6 +515,7 @@ table.dataTable th.fixed-notes-col {
 table.dataTable th {
   box-sizing: border-box;
 }
+
 
 
 
