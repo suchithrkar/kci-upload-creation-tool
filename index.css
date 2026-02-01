@@ -172,14 +172,6 @@ table.dataTable thead th {
   white-space: nowrap;
 }
 
-/* ===== STICKY TABLE HEADER (CORRECT IMPLEMENTATION) ===== */
-.dt-middle table.dataTable thead th {
-  position: sticky;
-  top: 98px;               /* sheet-tabs (48px) + dt-top (50px) */
-  z-index: 30;
-  background: #f0f1f3;     /* MUST be set or rows bleed through */
-}
-
 /* TABLE BODY */
 table.dataTable tbody td {
   padding: 6px 8px;
@@ -513,6 +505,7 @@ table.dataTable th.fixed-notes-col {
 table.dataTable th {
   box-sizing: border-box;
 }
+
 
 
 
