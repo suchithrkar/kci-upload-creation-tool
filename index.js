@@ -739,6 +739,30 @@ function normalizeText(val) {
   return String(val || "").trim().toLowerCase();
 }
 
+function toDateOnly(d) {
+  const x = new Date(d);
+  return new Date(x.getFullYear(), x.getMonth(), x.getDate());
+}
+
+function diffCalendarDays(from, to = new Date()) {
+  const a = toDateOnly(from);
+  const b = toDateOnly(to);
+  return Math.floor((b - a) / (24 * 60 * 60 * 1000));
+}
+
+function getCAGroup(createdOn) {
+  const days = diffCalendarDays(createdOn);
+
+  if (days <= 3) return "0-3 Days";
+  if (days <= 5) return "3-5 Days";
+  if (days <= 10) return "5-10 Days";
+  if (days <= 15) return "10-15 Days";
+  if (days <= 30) return "15-30 Days";
+  if (days <= 60) return "30-60 Days";
+  if (days <= 90) return "60-90 Days";
+  return "> 90 Days";
+}
+
 function getMOStatusPriority(status) {
   const s = normalizeText(status);
 
@@ -752,6 +776,51 @@ function getMOStatusPriority(status) {
   if (s === "cancelled") return 8;
 
   return 9; // unknown / future statuses
+}
+
+function getFirstOrderDate(caseId, wo, mo, so) {
+  const dates = [];
+
+  wo.forEach(r => r[0] === caseId && r[6] && dates.push(new Date(r[6])));
+  mo.forEach(r => r[1] === caseId && r[2] && dates.push(new Date(r[2])));
+  so.forEach(r => r[0] === caseId && r[2] && dates.push(new Date(r[2])));
+
+  if (!dates.length) return null;
+  return new Date(Math.min(...dates));
+}
+
+function calculateSBD(caseRow, firstOrderDate, sbdConfig) {
+  if (!firstOrderDate || !sbdConfig?.periods) return "NA";
+
+  const caseCreated = new Date(caseRow.createdOn);
+  const caseDateOnly = toDateOnly(caseCreated);
+
+  const period = sbdConfig.periods.find(p =>
+    p.startDate && p.endDate &&
+    caseDateOnly >= new Date(p.startDate) &&
+    caseDateOnly <= new Date(p.endDate)
+  );
+
+  if (!period) return "NA";
+
+  const countryRow = period.rows.find(
+    r => normalizeText(r.country) === normalizeText(caseRow.country)
+  );
+
+  if (!countryRow) return "NA";
+
+  const cutOff = countryRow.time;
+  if (!cutOff) return "NA";
+
+  const cutOffDate = new Date(caseDateOnly);
+  const [hh, mm] = cutOff.split(":");
+  cutOffDate.setHours(hh, mm, 0, 0);
+
+  if (caseCreated > cutOffDate) {
+    cutOffDate.setDate(cutOffDate.getDate() + 1);
+  }
+
+  return firstOrderDate <= cutOffDate ? "Met" : "Not Met";
 }
 
 async function buildCopySOOrders() {
@@ -1381,6 +1450,172 @@ document.getElementById("copyToClipboardBtn").addEventListener("click", async ()
   alert("Copied to clipboard");
 });
 
+async function buildRepairCases() {
+  const store = getStore("readonly");
+  const all = await new Promise(r => {
+    const q = store.getAll();
+    q.onsuccess = () => r(q.result);
+  });
+
+  const dump = all.find(x => x.sheetName === "Dump")?.rows || [];
+  const wo = all.find(x => x.sheetName === "WO")?.rows || [];
+  const mo = all.find(x => x.sheetName === "MO")?.rows || [];
+  const moItems = all.find(x => x.sheetName === "MO Items")?.rows || [];
+  const so = all.find(x => x.sheetName === "SO")?.rows || [];
+  const cso = all.find(x => x.sheetName === "CSO Status")?.rows || [];
+  const delivery = all.find(x => x.sheetName === "Delivery Details")?.rows || [];
+
+  const tlMap = all.find(x => x.sheetName === "TL_MAP")?.data || [];
+  const marketMap = all.find(x => x.sheetName === "MARKET_MAP")?.data || [];
+  const sbdConfig = all.find(x => x.sheetName === "SBD Cut Off Times");
+
+  const validCases = dump.filter(r =>
+    ["parts shipped", "onsite solution", "offsite solution"]
+      .includes(normalizeText(r[8]))
+  );
+
+  const rows = [];
+
+  validCases.forEach(d => {
+    const caseId = d[0];
+    const resolution = normalizeText(d[8]);
+
+    const firstOrder = getFirstOrderDate(caseId, wo, mo, so);
+
+    const tl =
+      tlMap.find(t =>
+        t.agents.some(a => normalizeText(a) === normalizeText(d[9]))
+      )?.name || "";
+
+    const market =
+      marketMap.find(m =>
+        m.countries.some(c => normalizeText(c) === normalizeText(d[6]))
+      )?.name || "";
+
+    const onsiteRFC =
+      resolution === "onsite solution"
+        ? (wo.filter(w => w[0] === caseId)
+            .sort((a, b) => new Date(b[6]) - new Date(a[6]))[0]?.[5] || "")
+        : "Not Found";
+
+    const csrRFC =
+      resolution === "parts shipped"
+        ? (mo.filter(m => m[1] === caseId)
+            .sort((a, b) => new Date(b[2]) - new Date(a[2]))[0]?.[3] || "")
+        : "Not Found";
+
+    const benchRFC =
+      resolution === "offsite solution"
+        ? (cso.find(c => c[0] === caseId)?.[2] || "")
+        : "Not Found";
+
+    const dnap =
+      resolution === "offsite solution" &&
+      normalizeText(cso.find(c => c[0] === caseId)?.[4])
+        .includes("product returned unrepaired")
+        ? "True"
+        : "";
+
+    rows.push([
+      caseId,
+      d[1], d[2], d[3], d[6], d[8], d[9], d[14],
+      getCAGroup(d[2]),
+      tl,
+      calculateSBD({ createdOn: d[2], country: d[6] }, firstOrder, sbdConfig),
+      onsiteRFC,
+      csrRFC,
+      benchRFC,
+      market,
+      onsiteRFC !== "Not Found"
+        ? wo.find(w => w[0] === caseId)?.[9] || ""
+        : "",
+      delivery.find(x => x[0] === caseId)?.[1] || "",
+      "", "", d[15], d[16], d[10],
+      dnap
+    ]);
+  });
+
+  const dt = dataTablesMap["Repair Cases"];
+  dt.clear();
+  rows.forEach(r => dt.row.add(["", ...r]));
+  dt.draw(false);
+
+  getStore("readwrite").put({
+    sheetName: "Repair Cases",
+    rows,
+    lastUpdated: new Date().toISOString()
+  });
+}
+
+async function buildClosedCasesReport() {
+  const store = getStore("readonly");
+  const all = await new Promise(r => {
+    const q = store.getAll();
+    q.onsuccess = () => r(q.result);
+  });
+
+  const closed = all.find(x => x.sheetName === "Closed Cases")?.rows || [];
+  const repair = all.find(x => x.sheetName === "Repair Cases")?.rows || [];
+
+  const now = new Date();
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+
+  const rows = [];
+
+  closed.forEach(c => {
+    const closedDate = new Date(c[4]);
+    if (closedDate < cutoff) return;
+
+    const repairRow = repair.find(r => r[0] === c[0]);
+
+    let closedBy = c[2];
+    if (closedBy === "# CrmWebJobUser-Prod") closedBy = "CRM Auto Closed";
+    else if (
+      ["# MSFT-ServiceSystemAdmin",
+       "# CrmEEGUser-Prod",
+       "# MSFT-ServiceSystemAdminDev",
+       "SYSTEM"].includes(closedBy)
+    ) closedBy = c[8];
+
+    rows.push([
+      c[0],
+      repairRow?.[1] || "",
+      c[1], c[6], c[2], c[3], c[4],
+      closedBy,
+      c[9], c[5], c[8], c[10],
+      repairRow?.[9] || "",
+      repairRow?.[10] || "",
+      repairRow?.[14] || ""
+    ]);
+  });
+
+  const dt = dataTablesMap["Closed Cases Report"];
+  dt.clear();
+  rows.forEach(r => dt.row.add(["", ...r]));
+  dt.draw(false);
+
+  const write = getStore("readwrite");
+  write.put({
+    sheetName: "Closed Cases Report",
+    rows,
+    lastUpdated: new Date().toISOString()
+  });
+
+  // Remove closed cases from Repair Cases
+  const remaining = repair.filter(
+    r => !rows.some(c => c[0] === r[0])
+  );
+
+  write.put({ sheetName: "Repair Cases", rows: remaining });
+}
+
+document.getElementById("processRepairBtn")
+  .addEventListener("click", async () => {
+    await buildRepairCases();
+    await buildClosedCasesReport();
+    alert("Repair & Closed Case data processed successfully.");
+  });
+
 document.addEventListener('DOMContentLoaded', async () => {
   await openDB();
   initEmptyTables();
@@ -1407,6 +1642,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
