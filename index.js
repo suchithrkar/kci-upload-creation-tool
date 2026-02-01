@@ -1657,29 +1657,6 @@ async function buildClosedCasesReport() {
     lastUpdated: new Date().toISOString()
   });
 
-  // 🔴 Purge old closed cases from IndexedDB (older than 6 months)
-  const storeRW = getStore("readwrite");
-  const req = storeRW.get("Closed Cases Report");
-  
-  req.onsuccess = () => {
-    const record = req.result;
-    if (!record?.rows) return;
-  
-    const now = new Date();
-    const cutoff = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-  
-    const filtered = record.rows.filter(r => {
-      const closedDate = new Date(r[6]);
-      return closedDate >= cutoff;
-    });
-  
-    storeRW.put({
-      sheetName: "Closed Cases Report",
-      rows: filtered,
-      lastUpdated: new Date().toISOString()
-    });
-  };
-
   // Remove closed cases from Repair Cases
   const remaining = repair.filter(
     r => !rows.some(c => c[0] === r[0])
@@ -1721,6 +1698,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
