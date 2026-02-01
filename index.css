@@ -141,7 +141,6 @@ input[type="file"] {
 
 /* ===== TABLES ===== */
 table.dataTable {
-  width: 100% !important;
   background: var(--bg-table);
   color: #1f1f1f;
   border-collapse: collapse;
@@ -434,6 +433,12 @@ table.dataTable th.fixed-notes-col {
   overflow-x: auto;
 }
 
+/* Ensure table starts from the left edge */
+.dt-table-wrapper table {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 /* Keep table width expandable */
 .dt-table-wrapper table {
   min-width: max-content;
@@ -448,5 +453,11 @@ table.dataTable th.fixed-notes-col {
 /* Hide horizontal scrollbar (Firefox) */
 .dt-table-wrapper {
   scrollbar-width: none;
+}
+
+/* Remove phantom side spacing from DataTables */
+.dataTables_wrapper {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
