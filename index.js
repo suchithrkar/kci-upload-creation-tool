@@ -182,7 +182,7 @@ function getStore(mode = "readonly") {
 function getColumnIndex(sheetName, columnName) {
   const headers = TABLE_SCHEMAS[sheetName];
   return headers ? headers.indexOf(columnName) + 1 : -1;
-  // +1 because DataTables has S.No as column 0 --
+  // +1 because DataTables has S.No as column 0
 }
 
 function initEmptyTables() {
@@ -1855,6 +1855,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
