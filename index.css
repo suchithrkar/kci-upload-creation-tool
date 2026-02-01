@@ -418,8 +418,13 @@ table.dataTable tbody td {
   scrollbar-width: none; /* Firefox */
 }
 
-/* Allow wrapping for Resolution Notes / Diagnostics */
-table.dataTable td,
-table.dataTable th {
-  word-break: break-word;
+/* Fixed-width notes columns with ellipsis */
+table.dataTable td.fixed-notes-col,
+table.dataTable th.fixed-notes-col {
+  max-width: 300px;
+  width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;   /* REQUIRED for ellipsis */
 }
+
