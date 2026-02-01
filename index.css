@@ -692,6 +692,13 @@ table.dataTable th {
   font-size: 13px;
 }
 
+/* ===== SBD FIRST ROW BORDER FIX ===== */
+
+/* Remove top border for first body row to visually join header */
+.sbd-tbody-scroll tbody tr:first-child td {
+  border-top: none;
+}
+
 
 
 
