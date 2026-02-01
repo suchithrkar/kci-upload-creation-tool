@@ -110,6 +110,12 @@ input[type="file"] {
   display: flex;
   align-items: center;
   padding: 12px 16px;
+
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  background: var(--bg-main);
 }
 
 .sheet-tabs-left {
@@ -164,6 +170,10 @@ table.dataTable thead th {
   border-bottom: 1px solid #cfcfcf;
   padding: 6px 8px;
   white-space: nowrap;
+
+  position: sticky;
+  top: 96.8px;              /* sheet-tabs + dt-top */
+  z-index: 40;
 }
 
 /* TABLE BODY */
@@ -440,6 +450,13 @@ table.dataTable th.fixed-notes-col {
   justify-content: space-between;
   margin: 0;
   padding: 12px 16px;
+
+  position: sticky;
+  top: 50px;               /* below sheet-tabs */
+  z-index: 45;
+
+  background: var(--bg-card);
+  border-bottom: 1px solid #d6d6d6;
 }
 
 .dt-bottom {
@@ -470,6 +487,7 @@ table.dataTable th.fixed-notes-col {
 
 .dt-middle {
   overflow-x: auto;
+  scroll-margin-top: 96.8px;
 }
 
 /* Let table fit container naturally unless it truly overflows */
@@ -492,6 +510,7 @@ table.dataTable th.fixed-notes-col {
 table.dataTable th {
   box-sizing: border-box;
 }
+
 
 
 
