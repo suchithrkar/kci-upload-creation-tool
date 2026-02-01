@@ -524,7 +524,7 @@ table.dataTable th {
 
 /* Modal size helpers */
 .modal-medium {
-  width: 640px;
+  /* width: 640px; */
   max-width: 95%;
 }
 
@@ -681,7 +681,7 @@ table.dataTable th {
 }
 
 .sbd-period h4 {
-  margin: 4px 0 8px;   /* balanced vertical spacing */
+  margin: 0px 0 8px;   /* balanced vertical spacing */
   padding-bottom: 6px;
 }
 
