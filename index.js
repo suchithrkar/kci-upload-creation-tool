@@ -272,7 +272,7 @@ function initEmptyTables() {
     
     const dt = $(table).DataTable({
       pageLength: 25,
-      autoWidth: true,
+      autoWidth: false,
       columnDefs,
       order: [[1, 'asc']],
     
@@ -1861,6 +1861,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
