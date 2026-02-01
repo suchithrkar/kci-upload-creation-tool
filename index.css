@@ -184,6 +184,8 @@ table.dataTable tbody td {
   padding: 3px;
 }
 
+.dataTables_info { padding: -.755em; }
+
 .table-scroll-wrapper {
   width: 100%;
 }
@@ -482,6 +484,7 @@ table.dataTable th.fixed-notes-col {
 table.dataTable th {
   box-sizing: border-box;
 }
+
 
 
 
