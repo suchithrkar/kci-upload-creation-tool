@@ -247,13 +247,25 @@ function initEmptyTables() {
       }
     ];
     
-    // Apply fixed width ONLY for Resolution Notes/ Diagnostics
-    if (sheetName === "WO" || sheetName === "Repair Cases") {
+    // Apply fixed width for diagnostics / notes columns
+    if (sheetName === "WO") {
       const idx = getColumnIndex(sheetName, "Resolution Notes/ Diagnostics");
       if (idx !== -1) {
         columnDefs.push({
           targets: idx,
-          width: "300px"
+          width: "300px",
+          className: "fixed-notes-col"
+        });
+      }
+    }
+    
+    if (sheetName === "Repair Cases") {
+      const idx = getColumnIndex(sheetName, "WO Closure Notes");
+      if (idx !== -1) {
+        columnDefs.push({
+          targets: idx,
+          width: "300px",
+          className: "fixed-notes-col"
         });
       }
     }
@@ -1843,6 +1855,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
