@@ -410,7 +410,7 @@ table.dataTable tbody td {
 /* Limit modal height like SBD */
 #tlModal .modal,
 #marketModal .modal {
-  max-height: 90vh;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
 }
@@ -419,7 +419,6 @@ table.dataTable tbody td {
 .tl-market-scroll {
   overflow-y: auto;
   padding-right: 4px;
-  margin-top: 8px;
   flex: 1;
 }
 
@@ -738,6 +737,7 @@ table.dataTable th {
   width: fit-content;              /* 🔥 content-driven width */
   max-width: calc(100vw - 80px);   /* viewport safety */
 }
+
 
 
 
