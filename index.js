@@ -371,33 +371,37 @@ document.getElementById('trackingInput').addEventListener('change', e => {
   enableProcessIfReady();
 });
 
-document.getElementById('processBtn').addEventListener('click', async function () {
-  document.getElementById('progressBarContainer').style.display = 'block';
-  document.getElementById('progressBar').style.width = '0%';
+document.getElementById('processBtn').addEventListener('click', async () => {
 
   if (kciFile) {
-    await processExcelFile(
-      kciFile,
-      ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"]
-    );
+    startProgressContext("Processing KCI Excel...");
+    await processExcelFile(kciFile, [
+      "Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"
+    ]);
     kciFile = null;
     document.getElementById('kciInput').value = "";
+    endProgressContext("KCI Excel processed");
+    return;
   }
 
   if (csoFile) {
+    startProgressContext("Processing GNPro CSO file...");
     await processGNProCSOFile(csoFile);
     csoFile = null;
     document.getElementById('csoInput').value = "";
+    endProgressContext("GNPro CSO processed");
+    return;
   }
-  
+
   if (trackingFile) {
+    startProgressContext("Processing Tracking Results...");
     await processTrackingResultsFile(trackingFile);
     trackingFile = null;
     document.getElementById('trackingInput').value = "";
+    endProgressContext("Tracking Results processed");
+    return;
   }
 
-  document.getElementById('statusText').textContent = "Upload processed successfully.";
-  document.getElementById('processBtn').disabled = true;
 });
 
 function enableProcessIfReady() {
@@ -407,13 +411,57 @@ function enableProcessIfReady() {
   }
 }
 
+let progressContext = null;
+
+function startProgressContext(label) {
+  progressContext = { label, value: 0 };
+  const container = document.getElementById("progressBarContainer");
+  const bar = document.getElementById("progressBar");
+  const status = document.getElementById("statusText");
+
+  container.style.display = "block";
+  bar.style.width = "0%";
+  status.textContent = label;
+}
+
+function updateProgressContext(current, total, text) {
+  if (!progressContext || total === 0) return;
+
+  const percent = Math.min(
+    100,
+    Math.round((current / total) * 100)
+  );
+
+  document.getElementById("progressBar").style.width = percent + "%";
+  if (text) document.getElementById("statusText").textContent = text;
+}
+
+function endProgressContext(text = "Completed") {
+  const bar = document.getElementById("progressBar");
+  const status = document.getElementById("statusText");
+
+  bar.style.width = "100%";
+  status.textContent = text;
+
+  setTimeout(() => {
+    document.getElementById("progressBarContainer").style.display = "none";
+    bar.style.width = "0%";
+    progressContext = null;
+  }, 700);
+}
+
 function buildSheetTables(workbook) {
 
   const progressBar = document.getElementById('progressBar');
   const statusText = document.getElementById('statusText');
 
   const sheetNames = workbook.SheetNames;
-  let processed = 0;
+
+  let processedRows = 0;
+  const totalRows = sheetNames.reduce((sum, s) => {
+    const sheet = workbook.Sheets[s];
+    return sum + (sheet ? XLSX.utils.sheet_to_json(sheet, { header: 1 }).length : 0);
+  }, 0);
 
   (async function processSheets() {
     for (let index = 0; index < sheetNames.length; index++) {
@@ -456,7 +504,13 @@ function buildSheetTables(workbook) {
       dataTable.clear();
       
       rows.forEach(r => {
-        dataTable.row.add(["", ...r]); // S.No placeholder
+        dataTable.row.add(["", ...r]);
+        processedRows++;
+        updateProgressContext(
+          processedRows,
+          totalRows,
+          `Processing ${sheetName} (${processedRows}/${totalRows})`
+        );
       });
       
       dataTable.draw(false);
@@ -470,8 +524,6 @@ function buildSheetTables(workbook) {
       });
       
       processed++;
-      const percent = Math.round((processed / sheetNames.length) * 100);
-      progressBar.style.width = percent + '%';
     }
   
     statusText.textContent = 'Processing complete';
@@ -626,7 +678,16 @@ async function processGNProCSOFile(file) {
 
   const finalRows = [];
 
+  let processed = 0;
+  const total = offsiteCases.length;
+  
   offsiteCases.forEach(caseId => {
+    processed++;
+    updateProgressContext(
+      processed,
+      total,
+      `Processing CSO cases (${processed}/${total})`
+    );
     const soRows = so.filter(r => r[soCaseIdx] === caseId);
     if (!soRows.length) return;
 
@@ -1131,7 +1192,16 @@ async function processTrackingResultsFile(file) {
   // --- STEP 2: Build Delivery Details rows ---
   const finalRows = [];
 
+  let processed = 0;
+  const total = finalCaseSet.size;
+  
   finalCaseSet.forEach(caseId => {
+    processed++;
+    updateProgressContext(
+      processed,
+      total,
+      `Updating tracking (${processed}/${total})`
+    );
     // Priority 1: existing Delivery Details
     const oldRow = oldDelivery.find(r => r[oldDelCaseIdx] === caseId);
     if (oldRow && oldRow[oldDelStatusIdx]) {
@@ -1667,9 +1737,38 @@ async function buildClosedCasesReport() {
 
 document.getElementById("processRepairBtn")
   .addEventListener("click", async () => {
+
+    startProgressContext("Building Repair Cases...");
+
+    const store = getStore("readonly");
+    const all = await new Promise(r => {
+      const q = store.getAll();
+      q.onsuccess = () => r(q.result);
+    });
+
+    const dump = all.find(x => x.sheetName === "Dump")?.rows || [];
+    const validCases = dump.filter(r =>
+      ["parts shipped", "onsite solution", "offsite solution"]
+        .includes(normalizeText(r[8]))
+    );
+
+    let processed = 0;
+    const total = validCases.length;
+
+    for (const _ of validCases) {
+      processed++;
+      updateProgressContext(
+        processed,
+        total,
+        `Processing Repair Cases (${processed}/${total})`
+      );
+      await new Promise(requestAnimationFrame);
+    }
+
     await buildRepairCases();
     await buildClosedCasesReport();
-    alert("Repair & Closed Case data processed successfully.");
+
+    endProgressContext("Repair & Closed Case processing completed");
   });
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1698,6 +1797,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
