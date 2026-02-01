@@ -181,7 +181,6 @@ table.dataTable tbody td {
 
 .table-scroll-wrapper {
   width: 100%;
-  overflow-x: auto;     /* KEY */
 }
 
 .table-scroll-wrapper table {
@@ -426,5 +425,28 @@ table.dataTable th.fixed-notes-col {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;   /* REQUIRED for ellipsis */
+}
+
+/* ===== DATATABLE HORIZONTAL SCROLL (TABLE ONLY) ===== */
+
+/* Scroll only the table area */
+.dt-table-wrapper {
+  overflow-x: auto;
+}
+
+/* Keep table width expandable */
+.dt-table-wrapper table {
+  min-width: max-content;
+}
+
+/* Hide horizontal scrollbar (Chrome, Edge, Safari) */
+.dt-table-wrapper::-webkit-scrollbar {
+  height: 0px;
+  background: transparent;
+}
+
+/* Hide horizontal scrollbar (Firefox) */
+.dt-table-wrapper {
+  scrollbar-width: none;
 }
 
