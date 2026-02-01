@@ -456,7 +456,7 @@ table.dataTable th.fixed-notes-col {
   top: 50px;               /* below sheet-tabs */
   z-index: 45;
 
-  background: var(--bg-card);
+  background: var(--bg-main);
   border-bottom: 1px solid #d6d6d6;
 }
 
@@ -510,6 +510,7 @@ table.dataTable th.fixed-notes-col {
 table.dataTable th {
   box-sizing: border-box;
 }
+
 
 
 
