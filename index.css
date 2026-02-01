@@ -463,4 +463,8 @@ table.dataTable th.fixed-notes-col {
   margin: 6px 0;
 }
 
+/* Prevent any accidental inline width causing overflow */
+table.dataTable th {
+  box-sizing: border-box;
+}
 
