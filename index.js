@@ -451,37 +451,33 @@ function endProgressContext(text = "Completed") {
 }
 
 function buildSheetTables(workbook) {
+  return new Promise(async resolve => {
 
-  const progressBar = document.getElementById('progressBar');
-  const statusText = document.getElementById('statusText');
+    const sheetNames = workbook.SheetNames;
 
-  const sheetNames = workbook.SheetNames;
+    let processedRows = 0;
+    const totalRows = sheetNames.reduce((sum, s) => {
+      const sheet = workbook.Sheets[s];
+      return sum + (sheet ? XLSX.utils.sheet_to_json(sheet, { header: 1 }).length : 0);
+    }, 0);
 
-  let processedRows = 0;
-  const totalRows = sheetNames.reduce((sum, s) => {
-    const sheet = workbook.Sheets[s];
-    return sum + (sheet ? XLSX.utils.sheet_to_json(sheet, { header: 1 }).length : 0);
-  }, 0);
-
-  (async function processSheets() {
     for (let index = 0; index < sheetNames.length; index++) {
       const sheetName = sheetNames[index];
       await new Promise(requestAnimationFrame);
-  
+
       const sheet = workbook.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
-  
-      if (json.length === 0) continue;
-  
+      if (!json.length) continue;
+
       const headers = TABLE_SCHEMAS[sheetName];
-      if (!headers) continue; // ignore unknown sheets safely
+      if (!headers) continue;
+
       const rows = json.slice(1).map(row => {
         const cleanedRow = [];
         const excelRow = row.slice(3);
-      
+
         for (let i = 0; i < headers.length; i++) {
           let cell = excelRow[i];
-      
           if (typeof cell === 'number' && cell > 40000 && cell < 60000) {
             try {
               cleanedRow.push(formatDate(excelDateToJSDate(cell)));
@@ -492,17 +488,12 @@ function buildSheetTables(workbook) {
             cleanedRow.push(cleanCell(cell));
           }
         }
-      
         return cleanedRow;
       });
-  
-      const tableWrapper = tablesMap[sheetName];
-      if (!tableWrapper) continue;
-      
-      const table = tableWrapper.querySelector('table');
+
       const dataTable = dataTablesMap[sheetName];
       dataTable.clear();
-      
+
       rows.forEach(r => {
         dataTable.row.add(["", ...r]);
         processedRows++;
@@ -512,23 +503,18 @@ function buildSheetTables(workbook) {
           `Processing ${sheetName} (${processedRows}/${totalRows})`
         );
       });
-      
+
       dataTable.draw(false);
 
-      const store = getStore("readwrite");
-
-      store.put({
-        sheetName: sheetName,
+      getStore("readwrite").put({
+        sheetName,
         rows: rows.map(r => normalizeRowToSchema(r, sheetName)),
         lastUpdated: new Date().toISOString()
       });
-      
-      processed++;
     }
-  
-    statusText.textContent = 'Processing complete';
-    document.getElementById('processBtn').disabled = true;
-  })();
+
+    resolve();
+  });
 }
 
 function processExcelFile(file, allowedSheets) {
@@ -544,8 +530,8 @@ function processExcelFile(file, allowedSheets) {
         Sheets: workbook.Sheets
       };
 
-      buildSheetTables(filteredWorkbook);
-      resolve();
+    await buildSheetTables(filteredWorkbook);
+    resolve();
     };
 
     reader.readAsArrayBuffer(file);
@@ -1797,6 +1783,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
