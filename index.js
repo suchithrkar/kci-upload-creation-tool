@@ -1777,8 +1777,8 @@ async function buildRepairCases() {
       delivery.find(x => x[0] === caseId)?.[1] || "",
       partNumber,
       partName,
-      d[15],
       d[16],
+      d[17],
       d[10],
       dnap
     ]);
@@ -1920,6 +1920,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
