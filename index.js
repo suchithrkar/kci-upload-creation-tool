@@ -495,6 +495,7 @@ function hideProgressOverlay() {
 
   document.getElementById("overlayConfirmBtn").style.display = "none";
   document.getElementById("overlayProgressBar").style.width = "0%";
+  document.getElementById("overlayProgressText").textContent = "0%";
 }
 
 function startProgressContext(label) {
@@ -505,6 +506,7 @@ function startProgressContext(label) {
 
   document.getElementById("overlayStatusText").textContent = label;
   document.getElementById("overlayProgressBar").style.width = "0%";
+  document.getElementById("overlayProgressText").textContent = "0%";
 }
 
 function animateProgressTo(targetPercent, duration = 280) {
@@ -529,12 +531,16 @@ function animateProgressTo(targetPercent, duration = 280) {
 
     displayedProgress = current;
     bar.style.width = current.toFixed(2) + "%";
+    document.getElementById("overlayProgressText").textContent =
+      Math.round(current) + "%";
 
     if (progress < 1) {
       progressAnimFrame = requestAnimationFrame(step);
     } else {
       displayedProgress = targetPercent;
       bar.style.width = targetPercent + "%";
+      document.getElementById("overlayProgressText").textContent =
+        targetPercent + "%";
       progressAnimFrame = null;
     }
   }
@@ -1920,74 +1926,17 @@ themeToggle.addEventListener('click', () => {
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+
+  const overlay = document.getElementById("progressOverlay");
+  const confirmBtn = document.getElementById("overlayConfirmBtn");
+
+  if (
+    overlay.style.display === "flex" &&
+    confirmBtn.style.display !== "none"
+  ) {
+    e.preventDefault();
+    confirmBtn.click();
+  }
+});
