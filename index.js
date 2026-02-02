@@ -1635,8 +1635,8 @@ document.getElementById("copySoBtn").addEventListener("click", async () => {
   document.getElementById("soCount").textContent =
     `Total cases: ${lines.length}`;
 
-  document.querySelector("#soModal h3").textContent =
-  "Copy SO Orders Preview";
+  document.getElementById("soModalTitle").textContent =
+    "Copy SO Orders Preview";
 
   document.getElementById("soModal").style.display = "flex";
 });
@@ -1654,7 +1654,7 @@ document.getElementById("copyTrackingBtn").addEventListener("click", async () =>
   document.getElementById("soCount").textContent =
     `Total cases: ${lines.length}`;
 
-  document.querySelector("#soModal h3").textContent =
+  document.getElementById("soModalTitle").textContent =
     "Copy Tracking URLs Preview";
 
   document.getElementById("soModal").style.display = "flex";
@@ -1940,3 +1940,4 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
