@@ -45,14 +45,6 @@
       </div>
 
       <button id="processBtn" disabled>Process Excel</button>
-
-      <!-- ✅ Status area (no dead space when empty) -->
-      <div class="upload-status">
-        <div id="statusText"></div>
-        <div id="progressBarContainer">
-          <div id="progressBar"></div>
-        </div>
-      </div>
     </div>
 
     <div class="action-bar">
@@ -135,6 +127,25 @@
   </div>
 </div>
 
+<!-- ===== GLOBAL PROGRESS OVERLAY ===== -->
+<div id="progressOverlay" class="progress-overlay" style="display:none;">
+  <div class="progress-card">
+    <div id="overlayStatusText" class="overlay-status"></div>
+
+    <div class="overlay-progress-bar">
+      <div id="overlayProgressBar"></div>
+    </div>
+
+    <button
+      id="overlayConfirmBtn"
+      class="overlay-confirm"
+      style="display:none;"
+    >
+      OK
+    </button>
+  </div>
+</div>
+
 <!-- App JS -->
 <script src="index.js"></script>
 <script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
@@ -142,6 +153,7 @@
 </body>
 
 </html>
+
 
 
 
