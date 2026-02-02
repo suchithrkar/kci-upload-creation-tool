@@ -837,8 +837,26 @@ table.dataTable th {
   font-weight: 700;
 }
 
+/* ===== COPY SO / TRACKING MODAL ===== */
 
+.so-modal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
+.so-count {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+}
 
-
-
+#soOutput {
+  width: 100%;
+  height: 260px;
+  resize: none;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
