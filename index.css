@@ -729,28 +729,15 @@ table.dataTable th {
 #tlContainer,
 #marketContainer {
   display: grid;
-  grid-template-columns: repeat(3, 320px); /* 🔥 real column width */
+  grid-template-columns: repeat(auto-fit, 320px);
   gap: 12px;
+  justify-content: start;
 }
 
 /* Prevent cards from stretching awkwardly */
 #tlContainer .mapping-block,
 #marketContainer .mapping-block {
   margin-bottom: 0; /* grid handles spacing */
-}
-
-@media (max-width: 900px) {
-  #tlContainer,
-  #marketContainer {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  #tlContainer,
-  #marketContainer {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ===== DYNAMIC WIDTH FOR TL & MARKET MODALS ===== */
@@ -859,4 +846,21 @@ table.dataTable th {
   font-family: Consolas, monospace;
   font-size: 12px;
   line-height: 1.4;
+}
+
+/* ===== HIDE SCROLLBAR — COPY SO / TRACKING ===== */
+
+.so-modal-body {
+  overflow-y: auto;
+}
+
+/* Chrome / Edge / Safari */
+.so-modal-body::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+/* Firefox */
+.so-modal-body {
+  scrollbar-width: none;
 }
