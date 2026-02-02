@@ -431,6 +431,13 @@ table.dataTable tbody td {
   cursor: pointer;
 }
 
+/* ===== TL & MARKET DEFAULT SIZE REFERENCE ===== */
+
+.mapping-block.placeholder {
+  visibility: hidden;   /* occupies space but not visible */
+  pointer-events: none;
+}
+
 /* ===== TL & MARKET MODAL SCROLL FIX ===== */
 
 /* Limit modal height like SBD */
@@ -848,19 +855,19 @@ table.dataTable th {
   line-height: 1.4;
 }
 
-/* ===== HIDE SCROLLBAR — COPY SO / TRACKING ===== */
+/* ===== HIDE SCROLLBAR — COPY SO / TRACKING TEXTAREA ===== */
 
-.so-modal-body {
+#soOutput {
   overflow-y: auto;
 }
 
 /* Chrome / Edge / Safari */
-.so-modal-body::-webkit-scrollbar {
+#soOutput::-webkit-scrollbar {
   width: 0;
   background: transparent;
 }
 
 /* Firefox */
-.so-modal-body {
+#soOutput {
   scrollbar-width: none;
 }
