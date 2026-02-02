@@ -477,7 +477,6 @@ document.getElementById('processBtn').addEventListener('click', async () => {
 function enableProcessIfReady() {
   if (kciFile || csoFile || trackingFile) {
     document.getElementById('processBtn').disabled = false;
-    document.getElementById('statusText').textContent = "Files ready to process.";
   }
 }
 
@@ -1920,6 +1919,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
