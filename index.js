@@ -485,20 +485,31 @@ let progressContext = null;
 let displayedProgress = 0;
 let progressAnimFrame = null;
 
+function showProgressOverlay() {
+  document.getElementById("progressOverlay").style.display = "flex";
+}
+
+function hideProgressOverlay() {
+  const overlay = document.getElementById("progressOverlay");
+  overlay.style.display = "none";
+  overlay.classList.remove("progress-complete");
+
+  document.getElementById("overlayConfirmBtn").style.display = "none";
+  document.getElementById("overlayProgressBar").style.width = "0%";
+}
+
 function startProgressContext(label) {
   progressContext = { label, value: 0 };
-  const container = document.getElementById("progressBarContainer");
-  const bar = document.getElementById("progressBar");
-  const status = document.getElementById("statusText");
-
-  container.style.display = "block";
   displayedProgress = 0;
-  bar.style.width = "0%";
-  status.textContent = label;
+
+  showProgressOverlay();
+
+  document.getElementById("overlayStatusText").textContent = label;
+  document.getElementById("overlayProgressBar").style.width = "0%";
 }
 
 function animateProgressTo(targetPercent, duration = 280) {
-  const bar = document.getElementById("progressBar");
+  const bar = document.getElementById("overlayProgressBar");
 
   if (progressAnimFrame) {
     cancelAnimationFrame(progressAnimFrame);
@@ -543,22 +554,26 @@ function updateProgressContext(current, total, text) {
   animateProgressTo(percent);
 
   if (text) {
-    document.getElementById("statusText").textContent = text;
+    document.getElementById("overlayStatusText").textContent = text;
   }
 }
 
 function endProgressContext(text = "Completed") {
-  const bar = document.getElementById("progressBar");
-  const status = document.getElementById("statusText");
+  const bar = document.getElementById("overlayProgressBar");
+  const status = document.getElementById("overlayStatusText");
+  const confirmBtn = document.getElementById("overlayConfirmBtn");
+  const overlay = document.getElementById("progressOverlay");
 
-  animateProgressTo(100, 180);
+  animateProgressTo(100, 200);
   status.textContent = text;
 
-  setTimeout(() => {
-    document.getElementById("progressBarContainer").style.display = "none";
-    bar.style.width = "0%";
+  overlay.classList.add("progress-complete");
+  confirmBtn.style.display = "inline-block";
+
+  confirmBtn.onclick = () => {
+    hideProgressOverlay();
     progressContext = null;
-  }, 700);
+  };
 }
 
 function buildSheetTables(workbook) {
@@ -1905,6 +1920,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
