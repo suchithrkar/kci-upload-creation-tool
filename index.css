@@ -50,17 +50,44 @@ header {
   /* min-height: calc(100vh - 64px); */
 }
 
+/* ===== CONTROL CENTER ===== */
+
+.control-center {
+  width: 100%;
+  background: linear-gradient(
+    to bottom,
+    var(--bg-card),
+    var(--bg-main)
+  );
+  border-bottom: 1px solid #d6d6d6;
+  padding: 16px 16px 14px;
+}
+
 /* ===== UPLOAD BAR ===== */
 .upload-box {
-  background: var(--bg-card);
-  padding: 14px 16px;
-  border-radius: 4px;
-  border: 1px solid #d6d6d6;
-  margin-bottom: 16px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 12px;
+
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+/* Upload status area — no dead space when empty */
+.upload-status {
+  width: 100%;
+  margin-top: 8px;
+}
+
+#statusText:empty {
+  display: none;
+}
+
+#progressBarContainer {
+  margin-top: 6px;
 }
 
 input[type="file"] {
@@ -84,11 +111,6 @@ input[type="file"] {
 }
 
 /* ===== STATUS / PROGRESS ===== */
-.emptyContainer {
-  width: 100%;
-  margin-top: 6px;
-}
-
 #statusText {
   width: 100%;
   margin-top: 6px;
@@ -218,11 +240,15 @@ table.dataTable tbody td {
 }
 
 .action-bar {
-  background: var(--bg-card);
-  border: 1px solid #d6d6d6;
-  padding: 12px 16px;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
+
+  background: transparent;
+  border: none;
+  padding: 10px 0 0;
+
+  border-top: 1px solid #d6d6d6;
 }
 
 .action-bar button {
@@ -735,6 +761,7 @@ table.dataTable th {
   width: fit-content;              /* 🔥 content-driven width */
   max-width: calc(100vw - 80px);   /* viewport safety */
 }
+
 
 
 
