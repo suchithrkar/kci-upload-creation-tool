@@ -1759,7 +1759,7 @@ async function buildRepairCases() {
 
     rows.push([
       caseId,
-      d[1], d[2], d[3], d[6], d[8], d[9], d[14],
+      d[1], d[2], d[3], d[6], d[8], d[9], d[15],
       getCAGroup(d[2]),
       tl,
       calculateSBD({ createdOn: d[2], country: d[6] }, firstOrder, sbdConfig),
@@ -1920,6 +1920,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
