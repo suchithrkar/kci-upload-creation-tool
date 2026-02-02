@@ -293,7 +293,7 @@ function initEmptyTables() {
     
       fixedHeader: {
         header: true,
-        headerOffset: 97.6   // sheet-tabs (48) + dt-top (50)
+        headerOffset: 96.6   // sheet-tabs (48) + dt-top (50)
       },
     
       dom:
@@ -1881,6 +1881,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
