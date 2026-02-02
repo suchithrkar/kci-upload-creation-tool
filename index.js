@@ -432,9 +432,22 @@ document.getElementById('processBtn').addEventListener('click', async () => {
 
   if (kciFile) {
     startProgressContext("Processing KCI Excel...");
+  
+    // ✅ FULL overwrite ONLY for KCI Excel
+    const store = getStore("readwrite");
+    ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"].forEach(sheet => {
+      dataTablesMap[sheet]?.clear().draw(false);
+      store.put({
+        sheetName: sheet,
+        rows: [],
+        lastUpdated: new Date().toISOString()
+      });
+    });
+  
     await processExcelFile(kciFile, [
       "Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"
     ]);
+  
     kciFile = null;
     document.getElementById('kciInput').value = "";
     endProgressContext("KCI Excel processed");
@@ -573,7 +586,7 @@ function buildSheetTables(workbook) {
       const rows = json
         .slice(1)
         .map(row => {
-          const excelRow = row;
+          const excelRow = row.slice(3); // Column D onward
       
           // ✅ Skip empty Excel rows (fixes ghost rows)
           if (!excelRow.some(cell => String(cell || "").trim() !== "")) {
@@ -628,11 +641,6 @@ function buildSheetTables(workbook) {
 
 function processExcelFile(file, allowedSheets) {
   return new Promise(resolve => {
-    const store = getStore("readwrite");
-    allowedSheets.forEach(sheet => {
-      dataTablesMap[sheet]?.clear().draw(false);
-      store.put({ sheetName: sheet, rows: [], lastUpdated: new Date().toISOString() });
-    });
     const reader = new FileReader();
 
     reader.onload = async function (evt) {
@@ -1897,6 +1905,7 @@ themeToggle.addEventListener('click', () => {
 // Init theme on load
 const savedTheme = localStorage.getItem('kci-theme') || 'dark';
 setTheme(savedTheme);
+
 
 
 
