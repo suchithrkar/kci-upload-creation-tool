@@ -563,12 +563,6 @@ table.dataTable th {
   max-width: none;
 }
 
-#tlModal .modal,
-#marketModal .modal {
-  width: fit-content;
-  max-width: calc(100vw - 80px);
-}
-
 .modal-large {
   width: 95%;
   max-width: 1200px;
@@ -740,22 +734,6 @@ table.dataTable th {
   border-top: none;
 }
 
-/* ===== TL & MARKET GRID LAYOUT ===== */
-
-/* Arrange mapping blocks in rows of 3 */
-#tlContainer,
-#marketContainer {
-  display: inline-grid;              /* 🔥 important */
-  grid-template-columns: repeat(auto-fit, 320px);
-  gap: 12px;
-}
-
-/* Prevent cards from stretching awkwardly */
-#tlContainer .mapping-block,
-#marketContainer .mapping-block {
-  margin-bottom: 0; /* grid handles spacing */
-}
-
 /* ===== DYNAMIC WIDTH FOR TL & MARKET MODALS ===== */
 
 /* Allow modal to expand based on grid content */
@@ -765,16 +743,26 @@ table.dataTable th {
   max-width: calc(100vw - 80px);   /* viewport safety */
 }
 
-#tlContainer,
-#marketContainer {
-  width: fit-content;     /* 🔥 allow multi-column expansion */
-}
-
 /* Fix Add TL / Market button width */
 #addTlBtn,
 #addMarketBtn {
   width: fit-content;
   align-self: flex-start;
+}
+
+/* ===== TL & MARKET FLEX LAYOUT (FINAL) ===== */
+
+#tlContainer,
+#marketContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Each mapping block has fixed width */
+.mapping-block {
+  width: 320px;
+  box-sizing: border-box;
 }
 
 /* ===== GLOBAL PROGRESS OVERLAY ===== */
@@ -893,6 +881,7 @@ table.dataTable th {
 #soOutput {
   scrollbar-width: none;
 }
+
 
 
 
