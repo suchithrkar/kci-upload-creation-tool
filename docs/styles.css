@@ -26,6 +26,11 @@ section {
   margin-bottom: 24px;
 }
 
+.section-note {
+  margin: 6px 0 16px;
+  color: #52606d;
+}
+
 label {
   display: block;
   margin-bottom: 12px;
@@ -58,10 +63,11 @@ button:hover {
 }
 
 pre#output {
-  min-height: 120px;
-  padding: 12px;
-  background: #f5f7fa;
+  min-height: 140px;
+  padding: 14px;
+  background: #edf2f7;
   border-radius: 8px;
-  border: 1px dashed #cbd2d9;
+  border: 1px solid #cbd2d9;
+  line-height: 1.5;
   white-space: pre-wrap;
 }
