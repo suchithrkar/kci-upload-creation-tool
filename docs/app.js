@@ -1,5 +1,6 @@
 import { loadExcelFile } from "../src/loaders/excelLoader.js";
 import { loadCsvFile } from "../src/loaders/csvLoader.js";
+import { buildRepairCases } from "../src/engine/repairCases.js";
 import { mapDumpRow } from "../src/schemas/dump.js";
 import { mapWoRow } from "../src/schemas/wo.js";
 import { mapMoRow } from "../src/schemas/mo.js";
@@ -97,7 +98,10 @@ document
 document
   .querySelector("#processRepairCases")
   .addEventListener("click", () => {
-    setOutput("Process Repair Cases clicked.");
+    const normalizedData = state.kciExcel?.normalized || state.kciExcelData || {};
+    const repairCases = buildRepairCases(normalizedData);
+    state.repairCases = repairCases;
+    setOutput(`Repair cases processed: ${repairCases.length}`);
   });
 
 document
