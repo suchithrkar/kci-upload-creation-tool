@@ -750,20 +750,19 @@ table.dataTable th {
   align-self: flex-start;
 }
 
-/* ===== TL & MARKET FLEX LAYOUT (FINAL) ===== */
+/* ===== TL & MARKET GRID (FINAL, ROW-SAFE) ===== */
 
 #tlContainer,
 #marketContainer {
-  display: flex;
-  flex-direction: row;   /* 🔥 CRITICAL FIX */
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 320px);
   gap: 12px;
 }
 
-/* Each mapping block has fixed width */
-.mapping-block {
-  width: 320px;
-  box-sizing: border-box;
+/* grid handles spacing */
+#tlContainer .mapping-block,
+#marketContainer .mapping-block {
+  margin-bottom: 0;
 }
 
 /* ===== GLOBAL PROGRESS OVERLAY ===== */
@@ -882,6 +881,7 @@ table.dataTable th {
 #soOutput {
   scrollbar-width: none;
 }
+
 
 
 
