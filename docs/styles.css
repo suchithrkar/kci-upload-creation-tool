@@ -1,0 +1,73 @@
+:root {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: #1f2933;
+  background-color: #f5f7fa;
+}
+
+body {
+  margin: 0;
+  padding: 32px;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(16, 24, 40, 0.08);
+}
+
+h1 {
+  margin-top: 0;
+}
+
+section {
+  margin-bottom: 24px;
+}
+
+.section-note {
+  margin: 6px 0 16px;
+  color: #52606d;
+}
+
+label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+input[type="file"] {
+  display: block;
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+.button-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd2d9;
+  background: #f0f4f8;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover {
+  background: #e1e8f0;
+}
+
+pre#output {
+  min-height: 140px;
+  padding: 14px;
+  background: #edf2f7;
+  border-radius: 8px;
+  border: 1px solid #cbd2d9;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}

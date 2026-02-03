@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KCI Upload Creation Tool</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>KCI Upload Creation Tool</h1>
+
+      <section>
+        <h2>Upload Inputs</h2>
+        <p class="section-note">Choose the source files before running actions.</p>
+        <label>
+          KCI Excel (Required)
+          <input type="file" id="kciExcel" accept=".xlsx,.xls" />
+        </label>
+        <label>
+          CSO CSV (Required for Closed Cases)
+          <input type="file" id="csoCsv" accept=".csv" />
+        </label>
+        <label>
+          Tracking CSV (Optional for Tracking URLs)
+          <input type="file" id="trackingCsv" accept=".csv" />
+        </label>
+      </section>
+
+      <section>
+        <h2>Processing</h2>
+        <p class="section-note">Run each step to generate outputs.</p>
+        <div class="button-row">
+          <button type="button" id="processRepairCases">Process Repair Cases</button>
+          <button type="button" id="processClosedCases">Process Closed Cases</button>
+          <button type="button" id="copySoOrders">Copy SO Orders</button>
+          <button type="button" id="copyTrackingUrls">Copy Tracking URLs</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Exports</h2>
+        <p class="section-note">Download generated outputs as CSV files.</p>
+        <div class="button-row">
+          <button type="button" id="exportRepairCases">Export Repair Cases</button>
+          <button type="button" id="exportClosedCases">Export Closed Cases</button>
+          <button type="button" id="exportSoOrders">Export SO Orders</button>
+          <button type="button" id="exportTrackingUrls">
+            Export Tracking URLs
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Status</h2>
+        <pre id="output" aria-live="polite">Status updates will appear here.</pre>
+      </section>
+    </main>
+
+    <script src="../src/state.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
