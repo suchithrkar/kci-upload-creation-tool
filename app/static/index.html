@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KCI Upload Creation Tool</title>
+  </head>
+  <body>
+    <h1>KCI Upload Creation Tool</h1>
+
+    <section>
+      <h2>Uploads</h2>
+      <div>
+        <label for="kciExcel">KCI Excel</label>
+        <input id="kciExcel" type="file" accept=".xls,.xlsx" />
+        <button id="uploadKci">Upload KCI Excel</button>
+      </div>
+      <div>
+        <label for="csoCsv">CSO CSV</label>
+        <input id="csoCsv" type="file" accept=".csv" />
+        <button id="uploadCso">Upload CSO CSV</button>
+      </div>
+      <div>
+        <label for="trackingCsv">Tracking CSV</label>
+        <input id="trackingCsv" type="file" accept=".csv" />
+        <button id="uploadTracking">Upload Tracking CSV</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Processing</h2>
+      <button id="processRepair">Process Repair Cases</button>
+      <button id="processClosed">Process Closed Cases</button>
+    </section>
+
+    <section>
+      <h2>Copy Outputs</h2>
+      <button id="copySo">Copy SO Orders</button>
+      <button id="copyTracking">Copy Tracking URLs</button>
+    </section>
+
+    <div id="status"></div>
+    <pre id="output"></pre>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
