@@ -8,6 +8,7 @@ import { mapMoItemsRow } from "../src/schemas/moItems.js";
 import { mapSoRow } from "../src/schemas/so.js";
 import { mapCsoRow } from "../src/schemas/cso.js";
 import { mapDeliveryRow } from "../src/schemas/delivery.js";
+import { exportCsv } from "../src/utils/exportCsv.js";
 
 const output = document.querySelector("#output");
 const state = window.appState;
@@ -17,6 +18,10 @@ const buttons = {
   processClosedCases: document.querySelector("#processClosedCases"),
   copySoOrders: document.querySelector("#copySoOrders"),
   copyTrackingUrls: document.querySelector("#copyTrackingUrls"),
+  exportRepairCases: document.querySelector("#exportRepairCases"),
+  exportClosedCases: document.querySelector("#exportClosedCases"),
+  exportSoOrders: document.querySelector("#exportSoOrders"),
+  exportTrackingUrls: document.querySelector("#exportTrackingUrls"),
 };
 
 const setOutput = (message) => {
@@ -67,11 +72,19 @@ const updateButtonState = () => {
   const trackingReady = hasRows(state.trackingCsv.data);
   const casesReady =
     hasRows(state.repairCases) || hasRows(state.closedCases);
+  const repairCasesReady = hasRows(state.repairCases);
+  const closedCasesReady = hasRows(state.closedCases);
+  const soOrdersReady = hasRows(state.copySoOrders);
+  const trackingUrlsReady = hasRows(state.copyTrackingUrls);
 
-  buttons.processRepairCases.disabled = !(excelReady && csoReady);
+  buttons.processRepairCases.disabled = !excelReady;
   buttons.processClosedCases.disabled = !(excelReady && csoReady);
   buttons.copySoOrders.disabled = !casesReady;
   buttons.copyTrackingUrls.disabled = !(casesReady && trackingReady);
+  buttons.exportRepairCases.disabled = !repairCasesReady;
+  buttons.exportClosedCases.disabled = !closedCasesReady;
+  buttons.exportSoOrders.disabled = !soOrdersReady;
+  buttons.exportTrackingUrls.disabled = !trackingUrlsReady;
 };
 
 const handleExcelLoad = async (file) => {
@@ -183,10 +196,6 @@ document
       setOutput("Please load the KCI Excel file first.");
       return;
     }
-    if (!hasRows(state.csoCsv.data)) {
-      setOutput("Please load the CSO CSV file first.");
-      return;
-    }
 
     try {
       const repairCases = buildRepairCases(state.kciExcel.normalized);
@@ -224,6 +233,11 @@ document
   });
 
 document.querySelector("#copySoOrders").addEventListener("click", () => {
+  if (!hasRows(state.repairCases) && !hasRows(state.closedCases)) {
+    setOutput("Please process repair or closed cases first.");
+    return;
+  }
+
   const orders = collectSoOrders(state.repairCases, state.closedCases);
   state.copySoOrders = orders;
   setOutput(`SO orders ready: ${orders.length}`);
@@ -236,12 +250,51 @@ document.querySelector("#copyTrackingUrls").addEventListener("click", () => {
     setOutput("Please load the Tracking CSV file first.");
     return;
   }
+  if (!hasRows(state.repairCases) && !hasRows(state.closedCases)) {
+    setOutput("Please process repair or closed cases first.");
+    return;
+  }
 
   const urls = collectTrackingUrls(state.trackingCsv.data);
   state.copyTrackingUrls = urls;
   setOutput(`Tracking URLs ready: ${urls.length}`);
   console.log("Tracking URLs prepared.", { rows: urls.length });
   updateButtonState();
+});
+
+const handleExport = (rows, filename, label) => {
+  if (!hasRows(rows)) {
+    setOutput(`No ${label} available to export yet.`);
+    return;
+  }
+
+  const exported = exportCsv(rows, filename);
+  if (!exported) {
+    setOutput(`Unable to export ${label} right now.`);
+    return;
+  }
+
+  setOutput(`${label} exported.`);
+};
+
+document.querySelector("#exportRepairCases").addEventListener("click", () => {
+  handleExport(state.repairCases, "repair_cases.csv", "repair cases");
+});
+
+document.querySelector("#exportClosedCases").addEventListener("click", () => {
+  handleExport(state.closedCases, "closed_cases.csv", "closed cases");
+});
+
+document.querySelector("#exportSoOrders").addEventListener("click", () => {
+  handleExport(state.copySoOrders, "copy_so_orders.csv", "SO orders");
+});
+
+document.querySelector("#exportTrackingUrls").addEventListener("click", () => {
+  handleExport(
+    state.copyTrackingUrls,
+    "copy_tracking_urls.csv",
+    "tracking URLs"
+  );
 });
 
 updateButtonState();
