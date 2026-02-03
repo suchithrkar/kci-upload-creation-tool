@@ -17,43 +17,68 @@
 <body>
 
 <header class="app-header">
-  <span class="header-title">KCI Case Tracker – Upload Excel Creation Tool</span>
-  <button id="themeToggle" title="Toggle theme">🌙</button>
+  <div class="header-content">
+    <div>
+      <span class="header-title">KCI Case Tracker</span>
+      <p class="header-subtitle">Upload Excel Creation Tool</p>
+    </div>
+    <div class="header-actions">
+      <button id="themeToggle" class="icon-button" title="Toggle theme">🌙</button>
+    </div>
+  </div>
 </header>
 
 <div class="container">
 
   <!-- ✅ CONTROL CENTER -->
   <div class="control-center">
+    <div class="control-grid">
+      <section class="panel upload-panel">
+        <div class="panel-header">
+          <h2>Upload source files</h2>
+          <p>Provide the latest KCI, CSO, and tracking exports to generate your workbook.</p>
+        </div>
 
-    <div class="upload-box">
-      <!-- emptyContainer REMOVED -->
-      
-      <div class="upload-group">
-        <label for="kciInput">KCI – Open Repair Case Data (Excel)</label>
-        <input type="file" id="kciInput" accept=".xlsx" />
-      </div>
+        <div class="upload-box">
+          <!-- emptyContainer REMOVED -->
+          
+          <div class="upload-group">
+            <label for="kciInput">KCI – Open Repair Case Data (Excel)</label>
+            <input type="file" id="kciInput" accept=".xlsx" />
+          </div>
 
-      <div class="upload-group">
-        <label for="csoInput">GNPro – CSO Status File (CSV)</label>
-        <input type="file" id="csoInput" accept=".csv" />
-      </div>
+          <div class="upload-group">
+            <label for="csoInput">GNPro – CSO Status File (CSV)</label>
+            <input type="file" id="csoInput" accept=".csv" />
+          </div>
 
-      <div class="upload-group">
-        <label for="trackingInput">Tracking Results File (CSV)</label>
-        <input type="file" id="trackingInput" accept=".csv" />
-      </div>
+          <div class="upload-group">
+            <label for="trackingInput">Tracking Results File (CSV)</label>
+            <input type="file" id="trackingInput" accept=".csv" />
+          </div>
 
-      <button id="processBtn" disabled>Process Excel</button>
-    </div>
+          <button id="processBtn" disabled>Process Excel</button>
+        </div>
+      </section>
 
-    <div class="action-bar">
-      <button id="copySoBtn">Copy SO Orders</button>
-      <button id="copyTrackingBtn">Copy Tracking URLs</button>
-      <button id="sbdBtn">SBD Cut Off Times</button>
-      <button id="tlBtn">TL</button>
-      <button id="marketBtn">Market</button>
-      <button id="processRepairBtn">Process Repair Data</button>
+      <section class="panel actions-panel">
+        <div class="panel-header">
+          <h2>Quick actions</h2>
+          <p>Use the shortcuts below to manage outputs and support tables.</p>
+        </div>
+        <div class="action-bar">
+          <button id="copySoBtn">Copy SO Orders</button>
+          <button id="copyTrackingBtn">Copy Tracking URLs</button>
+          <button id="sbdBtn">SBD Cut Off Times</button>
+          <button id="tlBtn">TL</button>
+          <button id="marketBtn">Market</button>
+          <button id="processRepairBtn">Process Repair Data</button>
+        </div>
+        <div class="action-note">
+          <span class="note-title">Tip:</span>
+          Run “Process Repair Data” after updating TL, Market, and SBD assignments.
+        </div>
+      </section>
     </div>
 
   </div>
