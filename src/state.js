@@ -1,4 +1,5 @@
 window.appState = {
+  // inputs
   kciExcel: {
     file: null,
     raw: {},
@@ -12,6 +13,8 @@ window.appState = {
     file: null,
     data: [],
   },
+
+  // outputs
   repairCases: [],
   closedCases: [],
   copySoOrders: [],
