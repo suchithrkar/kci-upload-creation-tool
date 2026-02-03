@@ -453,6 +453,7 @@ table.dataTable tbody td {
   overflow-y: auto;
   padding-right: 4px;
   flex: 1;
+  display: block;
 
   /* 🔥 allow grid to expand horizontally */
   align-items: flex-start;
@@ -880,4 +881,5 @@ table.dataTable th {
 #soOutput {
   scrollbar-width: none;
 }
+
 
