@@ -453,6 +453,9 @@ table.dataTable tbody td {
   overflow-y: auto;
   padding-right: 4px;
   flex: 1;
+
+  /* 🔥 allow grid to expand horizontally */
+  align-items: flex-start;
 }
 
 /* Hide scrollbar but keep scroll */
@@ -756,6 +759,11 @@ table.dataTable th {
   max-width: calc(100vw - 80px);   /* viewport safety */
 }
 
+#tlContainer,
+#marketContainer {
+  width: fit-content;     /* 🔥 allow multi-column expansion */
+}
+
 /* ===== GLOBAL PROGRESS OVERLAY ===== */
 
 .progress-overlay {
@@ -848,6 +856,7 @@ table.dataTable th {
 
 #soOutput {
   width: 100%;
+  box-sizing: border-box;   /* 🔥 KEY FIX */
   height: 260px;
   resize: none;
   font-family: Consolas, monospace;
@@ -871,3 +880,4 @@ table.dataTable th {
 #soOutput {
   scrollbar-width: none;
 }
+
