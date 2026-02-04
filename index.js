@@ -1138,7 +1138,7 @@ async function buildCopyTrackingURLs() {
     )
   ];
 
-  const trackingMap = new Map();
+  const moTrackingMap = new Map();
 
   partsShippedCases.forEach(caseId => {
     const caseMOs = mo.filter(r => r[moCaseIdx] === caseId);
@@ -1173,44 +1173,53 @@ async function buildCopyTrackingURLs() {
 
     if (!item || !item[moItemUrlIdx]) return;
 
-    trackingMap.set(caseId, item[moItemUrlIdx]);
+    moTrackingMap.set(caseId, item[moItemUrlIdx]);
   });
 
-  // ---- Stage 2: CSO delivered (secondary) ----
-  cso.forEach(r => {
-    const caseId = r[csoCaseIdx];
-    if (trackingMap.has(caseId)) return;
+// ---- Stage 2: CSO delivered tracking (independent) ----
+const csoTrackingMap = new Map();
 
-    if (normalizeText(r[csoStatusIdx]) === "delivered") {
-      const tn = r[csoTrackIdx];
-      if (!tn) return;
+cso.forEach(r => {
+  const caseId = r[csoCaseIdx];
+  const status = normalizeText(r[csoStatusIdx]);
+  const tn = r[csoTrackIdx];
 
-      const url =
-        "http://wwwapps.ups.com/WebTracking/processInputRequest" +
-        "?TypeOfInquiryNumber=T&InquiryNumber1=" + tn;
+  if (status === "delivered" && tn) {
+    const url =
+      "http://wwwapps.ups.com/WebTracking/processInputRequest" +
+      "?TypeOfInquiryNumber=T&InquiryNumber1=" + tn;
 
-      trackingMap.set(caseId, url);
-    }
-  });
+    csoTrackingMap.set(caseId, url);
+  }
+});
 
-  // ---- Stage 3: remove processed cases ----
-  delivery.forEach(r => {
-    const caseId = r[delCaseIdx];
-    const status = normalizeText(r[delStatusIdx]);
+// ---- Stage 3: Merge MO + CSO tracking ----
+const combinedTrackingMap = new Map();
 
-    if (
-      trackingMap.has(caseId) &&
-      status &&
-      status !== "no status found"
-    ) {
-      trackingMap.delete(caseId);
-    }
-  });
+// MO tracking first
+moTrackingMap.forEach((url, caseId) => {
+  combinedTrackingMap.set(caseId, url);
+});
 
-  return [...trackingMap.entries()]
-    .map(([k, v]) => `${k} | ${v}`)
-    .join("\n");
-}
+// CSO tracking next
+csoTrackingMap.forEach((url, caseId) => {
+  combinedTrackingMap.set(caseId, url);
+});
+
+// ---- Stage 4: Remove processed cases ----
+delivery.forEach(r => {
+  const caseId = r[delCaseIdx];
+  const status = normalizeText(r[delStatusIdx]);
+
+  if (
+    combinedTrackingMap.has(caseId) &&
+    status &&
+    status !== "no status found"
+  ) {
+    combinedTrackingMap.delete(caseId);
+  }
+});
+
 
 function parseTrackingResultsCSV(text) {
   const rows = XLSX.utils.sheet_to_json(
@@ -1978,6 +1987,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
