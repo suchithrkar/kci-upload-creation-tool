@@ -1220,6 +1220,12 @@ delivery.forEach(r => {
   }
 });
 
+// ---- Stage 5: Final output ----
+return [...combinedTrackingMap.entries()]
+  .map(([caseId, url]) => `${caseId} | ${url}`)
+  .join("\n");
+
+}
 
 function parseTrackingResultsCSV(text) {
   const rows = XLSX.utils.sheet_to_json(
@@ -1987,6 +1993,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
