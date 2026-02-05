@@ -950,3 +950,14 @@ table.dataTable th {
   line-height: 1.4;
 }
 
+.closed-report-top {
+  padding: 14px 16px;
+  background: #f7f8fa;
+  border-bottom: 1px solid #d6d6d6;
+}
+
+.closed-report-drilldown {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
