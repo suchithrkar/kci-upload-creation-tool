@@ -1090,4 +1090,26 @@ table.dataTable th {
   text-align: center;
 }
 
+#ccSummaryTable thead th {
+  position: sticky;
+  top: 0;
+  background: #f0f1f3;
+  z-index: 2;
+}
+
+#ccSummaryTable tbody tr:last-child td {
+  position: sticky;
+  bottom: 0;
+  background: #f7f8fa;
+  font-weight: 700;
+}
+
+.cc-kci {
+  cursor: pointer;
+}
+
+.cc-kci:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 
