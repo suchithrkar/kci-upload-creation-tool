@@ -1063,8 +1063,12 @@ function buildDrilldown(rows, date) {
 
   const map = {};
 
+const selectedMonth =
+  document.getElementById("ccMonthSelect").value;
+
   rows.forEach(r => {
     if (
+      toYYYYMM(r[6]) === selectedMonth &&
       toDateKey(r[6]) === date &&
       selectedAgents.includes(r[7])
     ) {
@@ -2153,6 +2157,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
