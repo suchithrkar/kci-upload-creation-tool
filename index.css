@@ -894,7 +894,9 @@ table.dataTable th {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: 240px;
+
+  flex: 0 0 320px;   /* 🔥 fixed width */
+  max-width: 320px;
 }
 
 .closed-report-filters label {
@@ -959,5 +961,48 @@ table.dataTable th {
 .closed-report-drilldown {
   max-height: 240px;
   overflow-y: auto;
+}
+
+.cc-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cc-filter-row span {
+  min-width: 90px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Dropdown behavior */
+.cc-agent-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.cc-agent-toggle {
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cc-agent-box {
+  display: none;                /* 🔥 hidden by default */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+  padding: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: #fff;
 }
 
