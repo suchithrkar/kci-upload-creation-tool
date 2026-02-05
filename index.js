@@ -1102,9 +1102,18 @@ const selectedMonth =
   const table = $("#ccDrillTable").DataTable();
   table.clear();
 
+  let total = 0;
+  
   Object.entries(map).forEach(([agent, count]) => {
+    total += count;
     table.row.add([agent, count]);
   });
+  
+  // 🔥 Grand Total row
+  table.row.add([
+    "<strong>Total</strong>",
+    `<strong>${total}</strong>`
+  ]);
 
   table.draw(false);
 
@@ -2124,13 +2133,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('#ccSummaryTable').DataTable({
       paging: false,
       searching: false,
-      info: false
+      info: false,
+      ordering: false,
+      dom: 't'        // 🔥 table only, no controls
     });
     
     $('#ccDrillTable').DataTable({
       paging: false,
       searching: false,
-      info: false
+      info: false,
+      ordering: false,
+      dom: 't'
     });
   });
 });
@@ -2166,6 +2179,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
