@@ -920,16 +920,17 @@ table.dataTable th {
   background: #fff;
   border: 1px solid #d6d6d6;
   border-radius: 6px;
-  padding: 10px;
+  /* padding: 10px; */
 }
 
 .closed-report-drilldown h4 {
-  margin: 0 0 8px;
+  margin: 0;
+  padding: 10px;
   font-size: 13px;
 }
 
 .closed-report-table {
-  margin-top: 16px;
+  /* margin-top: 16px; */
   flex: 1;
   overflow-y: auto; 
 }
@@ -1111,5 +1112,6 @@ table.dataTable th {
 .cc-kci:hover {
   background: rgba(0, 0, 0, 0.08);
 }
+
 
 
