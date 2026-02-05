@@ -364,6 +364,23 @@ function toDateKey(dateStr) {
   return d.toISOString().split("T")[0];
 }
 
+function formatDayDisplay(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long"
+  });
+}
+
+function formatMonthDisplay(yyyyMM) {
+  const [y, m] = yyyyMM.split("-");
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString("en-GB", {
+    month: "short",
+    year: "numeric"
+  }).replace(" ", " - ");
+}
+
 function excelDateToJSDate(serial) {
   const utc_days = Math.floor(serial - 25569);
   const utc_value = utc_days * 86400;
@@ -965,7 +982,7 @@ async function openClosedCasesReport() {
   }
 
   buildClosedCasesMonthFilter(closed);
-  buildClosedCasesAgentFilter(closed);
+  await buildClosedCasesAgentFilter(closed);
   buildClosedCasesSummary(closed);
 
   openModal("closedCasesReportModal");
@@ -1127,19 +1144,48 @@ function buildClosedCasesSummary(rows) {
     const agentRC = d.total - d.kci - d.crm;
 
     table.row.add([
-      date,
+      formatDayDisplay(date),
       d.total,
       d.kci > 0
       ? `<span class="cc-kci" data-date="${date}">${d.kci}</span>`
-      : "0",
+        : "0",
       d.crm,
       agentRC
     ]);
   });
 
+  let totalAll = 0;
+  let totalKci = 0;
+  let totalCrm = 0;
+  let totalRc = 0;
+  
+  Object.values(byDate).forEach(d => {
+    totalAll += d.total;
+    totalKci += d.kci;
+    totalCrm += d.crm;
+    totalRc += (d.total - d.kci - d.crm);
+  });
+  
+  table.row.add([
+    "<strong>Total</strong>",
+    `<strong>${totalAll}</strong>`,
+    `<strong>${totalKci}</strong>`,
+    `<strong>${totalCrm}</strong>`,
+    `<strong>${totalRc}</strong>`
+  ]);
+
   table.draw(false);
 
   attachDrilldownClicks(filtered);
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yKey = toDateKey(yesterday);
+  
+  if (byDate[yKey]) {
+    buildDrilldown(filtered, yKey);
+  }
+
 }
 
 function attachDrilldownClicks(rows) {
@@ -1191,7 +1237,7 @@ const selectedMonth =
   table.draw(false);
 
   document.getElementById("ccDrillTitle").textContent =
-    `KCI Closures – ${date}`;
+    `KCI Closures – ${formatDayDisplay(date)}`;
 }
 
 
@@ -2252,6 +2298,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
