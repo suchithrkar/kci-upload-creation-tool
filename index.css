@@ -781,7 +781,7 @@ table.dataTable th {
   font-weight: 700;
 
   /* 🔥 reliable top border replacement */
-  box-shadow: inset 0 0.3px 0 #000;
+  box-shadow: inset 0 0.2px 0 #000;
 }
 
 /* ===== GLOBAL PROGRESS OVERLAY ===== */
@@ -1144,6 +1144,7 @@ table.dataTable th {
 /* #ccDrillTable tbody tr:last-child td {
   border-bottom: none;
 } */
+
 
 
 
