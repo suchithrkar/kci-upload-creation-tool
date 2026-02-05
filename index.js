@@ -933,6 +933,159 @@ function loadDataFromDB() {
   };
 }
 
+async function openClosedCasesReport() {
+  const store = getStore("readonly");
+  const all = await new Promise(r => {
+    const q = store.getAll();
+    q.onsuccess = () => r(q.result);
+  });
+
+  const closed =
+    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
+
+  if (!closed.length) {
+    alert("No Closed Cases Data available.");
+    return;
+  }
+
+  buildClosedCasesMonthFilter(closed);
+  buildClosedCasesAgentFilter(closed);
+  buildClosedCasesSummary(closed);
+
+  openModal("closedCasesReportModal");
+}
+
+function buildClosedCasesMonthFilter(rows) {
+  const select = document.getElementById("ccMonthSelect");
+  select.innerHTML = "";
+
+  const months = [...new Set(
+    rows.map(r => toYYYYMM(r[6]))   // Case Closed Date
+  )].sort().reverse().slice(0, 7);
+
+  months.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    select.appendChild(opt);
+  });
+
+  select.onchange = () => buildClosedCasesSummary(rows);
+}
+
+function buildClosedCasesAgentFilter(rows) {
+  const select = document.getElementById("ccAgentSelect");
+  select.innerHTML = "";
+
+  const agents = [...new Set(
+    rows
+      .map(r => r[7])   // Closed By
+      .filter(v => v && v !== "CRM Auto Closed")
+  )].sort();
+
+  agents.forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    opt.textContent = a;
+    opt.selected = true; // default = all selected
+    select.appendChild(opt);
+  });
+
+  select.onchange = () => buildClosedCasesSummary(rows);
+}
+
+function buildClosedCasesSummary(rows) {
+  const month = document.getElementById("ccMonthSelect").value;
+  const agentSelect = document.getElementById("ccAgentSelect");
+
+  const selectedAgents = [...agentSelect.selectedOptions].map(o => o.value);
+
+  const filtered = rows.filter(r =>
+    toYYYYMM(r[6]) === month
+  );
+
+  const byDate = {};
+
+  filtered.forEach(r => {
+    const dateKey = toDateKey(r[6]);
+    const closedBy = r[7];
+
+    if (!byDate[dateKey]) {
+      byDate[dateKey] = {
+        total: 0,
+        kci: 0,
+        crm: 0
+      };
+    }
+
+    byDate[dateKey].total++;
+
+    if (closedBy === "CRM Auto Closed") {
+      byDate[dateKey].crm++;
+    } else if (selectedAgents.includes(closedBy)) {
+      byDate[dateKey].kci++;
+    }
+  });
+
+  const table = $("#ccSummaryTable").DataTable();
+  table.clear();
+
+  Object.keys(byDate).sort().forEach(date => {
+    const d = byDate[date];
+    const agentRC = d.total - d.kci - d.crm;
+
+    table.row.add([
+      date,
+      d.total,
+      `<span class="cc-kci" data-date="${date}">${d.kci}</span>`,
+      d.crm,
+      agentRC
+    ]);
+  });
+
+  table.draw(false);
+
+  attachDrilldownClicks(rows);
+}
+
+function attachDrilldownClicks(rows) {
+  document.querySelectorAll(".cc-kci").forEach(el => {
+    el.onclick = () => {
+      const date = el.dataset.date;
+      buildDrilldown(rows, date);
+    };
+  });
+}
+
+function buildDrilldown(rows, date) {
+  const agentSelect = document.getElementById("ccAgentSelect");
+  const selectedAgents = [...agentSelect.selectedOptions].map(o => o.value);
+
+  const map = {};
+
+  rows.forEach(r => {
+    if (
+      toDateKey(r[6]) === date &&
+      selectedAgents.includes(r[7])
+    ) {
+      map[r[7]] = (map[r[7]] || 0) + 1;
+    }
+  });
+
+  const table = $("#ccDrillTable").DataTable();
+  table.clear();
+
+  Object.entries(map).forEach(([agent, count]) => {
+    table.row.add([agent, count]);
+  });
+
+  table.draw(false);
+
+  document.getElementById("ccDrillTitle").textContent =
+    `KCI Closures – ${date}`;
+}
+
+
 function switchSheet(sheetName) {
   document.querySelectorAll('.sheet-tab').forEach(tab => {
     tab.classList.toggle('active', tab.textContent === sheetName);
@@ -956,6 +1109,16 @@ function switchSheet(sheetName) {
 
 function normalizeText(val) {
   return String(val || "").trim().toLowerCase();
+}
+
+function toYYYYMM(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toDateKey(dateStr) {
+  const d = new Date(dateStr);
+  return d.toISOString().split("T")[0];
 }
 
 function toDateOnly(d) {
@@ -1658,6 +1821,9 @@ document.getElementById("addMarketBtn").onclick = () => {
   addMarketBlock();
 };
 
+document.getElementById("closedCasesReportBtn")
+  .addEventListener("click", openClosedCasesReport);
+
 document.getElementById("copySoBtn").addEventListener("click", async () => {
   const output = await buildCopySOOrders();
 
@@ -1942,6 +2108,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // IMPORTANT: wait for DataTables to fully initialize
   requestAnimationFrame(() => {
     loadDataFromDB();
+    $('#ccSummaryTable').DataTable({
+      paging: false,
+      searching: false,
+      info: false
+    });
+    
+    $('#ccDrillTable').DataTable({
+      paging: false,
+      searching: false,
+      info: false
+    });
   });
 });
 
@@ -1976,6 +2153,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
