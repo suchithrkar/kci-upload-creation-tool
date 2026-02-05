@@ -265,7 +265,7 @@ table.dataTable tbody td {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0, 0, 0, 0.95); /* 🔥 darker overlay */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -569,6 +569,12 @@ table.dataTable th {
   max-height: 90vh;          /* 🔥 prevent overflow */
   display: flex;
   flex-direction: column;
+}
+
+/* Closed Cases Report specific width */
+#closedCasesReportModal .modal {
+  width: 50%;
+  max-width: 50%;
 }
 
 /* Header */
@@ -1005,4 +1011,5 @@ table.dataTable th {
   overflow-y: auto;
   background: #fff;
 }
+
 
