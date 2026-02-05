@@ -354,6 +354,16 @@ function normalizeText(val) {
     .toLowerCase();
 }
 
+function toYYYYMM(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toDateKey(dateStr) {
+  const d = new Date(dateStr);
+  return d.toISOString().split("T")[0];
+}
+
 function excelDateToJSDate(serial) {
   const utc_days = Math.floor(serial - 25569);
   const utc_value = utc_days * 86400;
@@ -2156,6 +2166,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
