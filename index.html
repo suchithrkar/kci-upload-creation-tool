@@ -48,6 +48,7 @@
     </div>
 
     <div class="action-bar">
+      <button id="closedCasesReportBtn">Closed Cases Report</button>
       <button id="copySoBtn">Copy SO Orders</button>
       <button id="copyTrackingBtn">Copy Tracking URLs</button>
       <button id="sbdBtn">SBD Cut Off Times</button>
@@ -138,6 +139,62 @@
   </div>
 </div>
 
+<div id="closedCasesReportModal" class="modal-overlay" style="display:none;">
+  <div class="modal modal-polished modal-large">
+
+    <h3>Closed Cases Report</h3>
+
+    <!-- Filters + Drilldown -->
+    <div class="closed-report-top">
+      <div class="closed-report-filters">
+        <label>
+          Month
+          <select id="ccMonthSelect"></select>
+        </label>
+
+        <label>
+          KCI Agents
+          <select id="ccAgentSelect" multiple></select>
+        </label>
+      </div>
+
+      <div class="closed-report-drilldown">
+        <h4 id="ccDrillTitle">Breakdown</h4>
+        <table id="ccDrillTable" class="display compact">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Cases Closed</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Primary table -->
+    <div class="closed-report-table">
+      <table id="ccSummaryTable" class="display">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Total Closed</th>
+            <th>KCI Closed</th>
+            <th>CRM Auto Closed</th>
+            <th>Agents RC Closed</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeModal('closedCasesReportModal')">Close</button>
+    </div>
+
+  </div>
+</div>
+
 <!-- ===== GLOBAL PROGRESS OVERLAY ===== -->
 <div id="progressOverlay" class="progress-overlay" style="display:none;">
   <div class="progress-card">
@@ -166,6 +223,7 @@
 </body>
 
 </html>
+
 
 
 
