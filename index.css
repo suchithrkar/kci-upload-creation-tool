@@ -779,7 +779,7 @@ table.dataTable th {
 #ccDrillTable tbody tr:last-child td {
   background: #e9ecef;
   font-weight: 800;
-  border-top: 1px solid #999;
+  border-top: 1px solid #000; /* 🔥 solid black separator */
 }
 
 /* ===== GLOBAL PROGRESS OVERLAY ===== */
@@ -1115,21 +1115,24 @@ table.dataTable th {
 
 .cc-kci {
   cursor: pointer;
-  padding: 4px 0;
+  display: block;           /* 🔥 fills available width */
+  padding: 6px 0;           /* 🔥 matches td padding */
 }
 
-#ccSummaryTable td .cc-kci:hover {
+#ccSummaryTable td:hover .cc-kci {
   background: rgba(0, 0, 0, 0.12);
 }
 
 /* Weekend highlight */
 #ccSummaryTable tbody tr.cc-weekend td {
-  background: #f5f7fa;
+  background: #eef1f6;
+  font-weight: 600;
 }
 
 /* #ccDrillTable tbody tr:last-child td {
   border-bottom: none;
 } */
+
 
 
 
