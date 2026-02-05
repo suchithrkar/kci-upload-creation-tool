@@ -147,16 +147,22 @@
     <!-- Filters + Drilldown -->
     <div class="closed-report-top">
       <div class="closed-report-filters">
-        <label>
-          Month
+        <div class="cc-filter-row">
+          <span>Month</span>
           <select id="ccMonthSelect"></select>
-        </label>
+        </div>
 
-        <label>
-          KCI Agents
-          <div id="ccAgentBox" class="cc-agent-box"></div>
-          <div id="ccAgentSelected" class="cc-agent-selected"></div>
-        </label>
+        <div class="cc-filter-row">
+          <span>KCI Agents</span>
+          <div class="cc-agent-dropdown">
+            <div id="ccAgentToggle" class="cc-agent-toggle">
+              Select KCI Agents
+            </div>
+            <div id="ccAgentBox" class="cc-agent-box"></div>
+          </div>
+        </div>
+        
+        <div id="ccAgentSelected" class="cc-agent-selected"></div>
       </div>
 
       <div class="closed-report-drilldown">
@@ -224,6 +230,7 @@
 </body>
 
 </html>
+
 
 
 
