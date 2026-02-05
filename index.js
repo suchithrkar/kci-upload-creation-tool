@@ -119,7 +119,7 @@ const TABLE_SCHEMAS = {
     "DNAP"
   ],
 
-  "Closed Cases Report": [
+  "Closed Cases Data": [
     "Case ID",
     "Customer Name",
     "Created On",
@@ -314,7 +314,7 @@ function initEmptyTables() {
     tab.onclick = () => switchSheet(sheetName);
     
     // Right-aligned tabs
-    if (sheetName === "Repair Cases" || sheetName === "Closed Cases Report") {
+    if (sheetName === "Repair Cases" || sheetName === "Closed Cases Data") {
       rightTabsDiv.appendChild(tab);
     } else {
       leftTabsDiv.appendChild(tab);
@@ -1879,14 +1879,14 @@ async function buildClosedCasesReport() {
     ]);
   });
 
-  const dt = dataTablesMap["Closed Cases Report"];
+  const dt = dataTablesMap["Closed Cases Data"];
   dt.clear();
   rows.forEach(r => dt.row.add(["", ...r]));
   dt.draw(false);
 
   const write = getStore("readwrite");
   write.put({
-    sheetName: "Closed Cases Report",
+    sheetName: "Closed Cases Data",
     rows,
     lastUpdated: new Date().toISOString()
   });
@@ -1976,6 +1976,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
