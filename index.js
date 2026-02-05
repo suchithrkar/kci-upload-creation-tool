@@ -2260,7 +2260,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       searching: false,
       info: false,
       ordering: false,
-      dom: 't'        // 🔥 table only, no controls
+      dom: 't',
+    
+      // 🔥 THIS LINE STOPS odd/even CLASSES COMPLETELY
+      stripeClasses: []
     });
     
     $('#ccDrillTable').DataTable({
