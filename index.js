@@ -1055,7 +1055,8 @@ async function buildClosedCasesAgentFilter(rows) {
     
     selected.forEach(name => {
       const div = document.createElement("div");
-      div.textContent = name;
+      div.textContent = `– ${name}`;
+      div.className = "cc-agent-name";
       selectedDiv.appendChild(div);
     });
   }
@@ -2251,6 +2252,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
