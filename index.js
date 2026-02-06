@@ -966,6 +966,13 @@ function loadDataFromDB() {
   };
 }
 
+document.getElementById("ccDrillTotalBtn").onclick = () => {
+  const store = getStore("readonly");
+  store.get("Closed Cases Data").onsuccess = e => {
+    buildDrilldownTotal(e.target.result.rows || []);
+  };
+};
+
 async function openClosedCasesReport() {
   const store = getStore("readonly");
   const all = await new Promise(r => {
@@ -984,7 +991,10 @@ async function openClosedCasesReport() {
   buildClosedCasesMonthFilter(closed);
   await buildClosedCasesAgentFilter(closed);
   buildClosedCasesSummary(closed);
-
+  
+  // 🔥 DEFAULT: show monthly total drilldown
+  buildDrilldownTotal(closed);
+  
   openModal("closedCasesReportModal");
 }
 
@@ -1246,6 +1256,46 @@ const selectedMonth =
     `KCI Closures – ${formatDayDisplay(date)}`;
 }
 
+function buildDrilldownTotal(rows) {
+  const selectedMonth =
+    document.getElementById("ccMonthSelect").value;
+
+  const selectedAgents =
+    [...document.querySelectorAll("#ccAgentBox input:checked")]
+      .map(cb => cb.value);
+
+  const map = {};
+
+  rows.forEach(r => {
+    if (
+      toYYYYMM(r[6]) === selectedMonth &&
+      selectedAgents.includes(r[7])
+    ) {
+      map[r[7]] = (map[r[7]] || 0) + 1;
+    }
+  });
+
+  const table = $("#ccDrillTable").DataTable();
+  table.clear();
+
+  let total = 0;
+
+  selectedAgents.forEach(agent => {
+    const count = map[agent] || 0;
+    total += count;
+    table.row.add([agent, count]);
+  });
+
+  table.row.add([
+    "<strong>Total</strong>",
+    `<strong>${total}</strong>`
+  ]);
+
+  table.draw(false);
+
+  document.getElementById("ccDrillTitle").textContent =
+    "KCI Closures – Monthly Total";
+}
 
 function switchSheet(sheetName) {
   document.querySelectorAll('.sheet-tab').forEach(tab => {
@@ -2307,6 +2357,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
