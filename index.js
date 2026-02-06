@@ -1848,7 +1848,7 @@ function adjustMappingModalWidth(containerId, modalId) {
   const blocks = container.querySelectorAll(".mapping-block:not(.placeholder)");
   const count = Math.max(1, Math.min(blocks.length, 3)); // 1–3 per row
 
-  const blockWidth = 320;
+  const blockWidth = 352;
   const gap = 12;
 
   const width = count * blockWidth + (count - 1) * gap;
@@ -2357,6 +2357,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
