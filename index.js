@@ -2076,6 +2076,15 @@ async function buildRepairCases() {
     q.onsuccess = () => r(q.result);
   });
 
+  const existingRepair =
+    all.find(x => x.sheetName === "Repair Cases")?.rows || [];
+  
+  const repairMap = new Map();
+  // Key = Case ID, Value = row array
+  existingRepair.forEach(r => {
+    repairMap.set(r[0], r);
+  });
+
   const dump = all.find(x => x.sheetName === "Dump")?.rows || [];
   const wo = all.find(x => x.sheetName === "WO")?.rows || [];
   const mo = all.find(x => x.sheetName === "MO")?.rows || [];
@@ -2092,8 +2101,6 @@ async function buildRepairCases() {
     ["parts shipped", "onsite solution", "offsite solution"]
       .includes(normalizeText(r[8]))
   );
-
-  const rows = [];
 
   validCases.forEach(d => {
     const caseId = d[0];
@@ -2161,7 +2168,7 @@ async function buildRepairCases() {
       }
     }
 
-    rows.push([
+    const newRow = [
       caseId,
       d[1], d[2], d[3], d[6], d[8], d[9], d[15],
       getCAGroup(d[2]),
@@ -2185,19 +2192,27 @@ async function buildRepairCases() {
       d[17],
       d[10],
       dnap
-    ]);
+    ];
+    
+    // 🔥 UPSERT: overwrite if exists, else add
+    repairMap.set(caseId, newRow);
   });
 
+  const finalRows = [...repairMap.values()];
+  
+  // Update UI
   const dt = dataTablesMap["Repair Cases"];
   dt.clear();
-  rows.forEach(r => dt.row.add(["", ...r]));
+  finalRows.forEach(r => dt.row.add(["", ...r]));
   dt.draw(false);
-
+  
+  // Save to DB
   getStore("readwrite").put({
     sheetName: "Repair Cases",
-    rows,
+    rows: finalRows,
     lastUpdated: new Date().toISOString()
   });
+  
 }
 
 async function buildClosedCasesReport() {
@@ -2205,6 +2220,15 @@ async function buildClosedCasesReport() {
   const all = await new Promise(r => {
     const q = store.getAll();
     q.onsuccess = () => r(q.result);
+  });
+
+  const existingClosed =
+    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
+  
+  const closedMap = new Map();
+  // Key = Case ID, Value = row
+  existingClosed.forEach(r => {
+    closedMap.set(r[0], r);
   });
 
   const closed = all.find(x => x.sheetName === "Closed Cases")?.rows || [];
@@ -2230,7 +2254,10 @@ async function buildClosedCasesReport() {
        "SYSTEM"].includes(closedBy)
     ) closedBy = c[8];
 
-    rows.push([
+    // 🔥 Skip if already exists (immutable)
+    if (closedMap.has(c[0])) return;
+    
+    closedMap.set(c[0], [
       c[0],
       repairRow?.[1] || "",
       c[1], c[6], c[2], c[3], c[4],
@@ -2242,22 +2269,33 @@ async function buildClosedCasesReport() {
     ]);
   });
 
+  const finalClosedRows = [...closedMap.values()];
+
+  // Update UI
   const dt = dataTablesMap["Closed Cases Data"];
   dt.clear();
-  rows.forEach(r => dt.row.add(["", ...r]));
+  finalClosedRows.forEach(r => dt.row.add(["", ...r]));
   dt.draw(false);
-
+  
+  // Save to DB
   const write = getStore("readwrite");
   write.put({
     sheetName: "Closed Cases Data",
-    rows,
+    rows: finalClosedRows,
     lastUpdated: new Date().toISOString()
   });
 
-  // Remove closed cases from Repair Cases
+  const closedIds = new Set(finalClosedRows.map(r => r[0]));
+  
   const remaining = repair.filter(
-    r => !rows.some(c => c[0] === r[0])
+    r => !closedIds.has(r[0])
   );
+  
+  write.put({
+    sheetName: "Repair Cases",
+    rows: remaining,
+    lastUpdated: new Date().toISOString()
+  });
 
   write.put({ sheetName: "Repair Cases", rows: remaining });
 }
@@ -2357,6 +2395,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
