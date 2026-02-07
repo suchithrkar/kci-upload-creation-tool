@@ -423,7 +423,7 @@ function buildMatrixFromCases(caseIds, repairRows) {
     const res = row[resIdx];
     const ca = row[caIdx];
 
-    if (!matrix[res] || !matrix[res][ca]) return;
+    if (!matrix[res] || !(ca in matrix[res])) return;
 
     matrix[res][ca]++;
     matrix[res].Total++;
@@ -2591,6 +2591,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
