@@ -48,6 +48,7 @@
     </div>
 
     <div class="action-bar">
+      <button id="openRepairCasesReportBtn">Open Repair Cases Report</button>
       <button id="closedCasesReportBtn">Closed Cases Report</button>
       <button id="copySoBtn">Copy SO Orders</button>
       <button id="copyTrackingBtn">Copy Tracking URLs</button>
@@ -206,6 +207,30 @@
   </div>
 </div>
 
+<div id="openRepairCasesReportModal" class="modal-overlay" style="display:none;">
+  <div class="modal modal-polished modal-large">
+
+    <h3>Open Repair Cases Report</h3>
+
+    <div class="orc-section">
+      <h4>Open Repair Cases</h4>
+      <div id="openRepairCasesTable"></div>
+    </div>
+
+    <div class="orc-section">
+      <h4>Ready for Closure</h4>
+      <div id="readyForClosureTable"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeModal('openRepairCasesReportModal')">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
+
 <!-- ===== GLOBAL PROGRESS OVERLAY ===== -->
 <div id="progressOverlay" class="progress-overlay" style="display:none;">
   <div class="progress-card">
@@ -234,6 +259,7 @@
 </body>
 
 </html>
+
 
 
 
