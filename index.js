@@ -1595,6 +1595,52 @@ function calculateSBD(caseRow, firstOrderDate, sbdConfig) {
   return firstOrderDate <= cutOffDate ? "Met" : "Not Met";
 }
 
+function getCalculatedResolution(caseId, wo, so, mo, dumpResolution) {
+  let latest = null;
+
+  // WO
+  wo.forEach(r => {
+    if (r[0] === caseId && r[6]) {
+      const d = new Date(r[6]);
+      if (!latest || d > latest.date) {
+        latest = { type: "WO", date: d };
+      }
+    }
+  });
+
+  // SO
+  so.forEach(r => {
+    if (r[0] === caseId && r[2]) {
+      const d = new Date(r[2]);
+      if (!latest || d > latest.date) {
+        latest = { type: "SO", date: d };
+      }
+    }
+  });
+
+  // MO
+  mo.forEach(r => {
+    if (r[1] === caseId && r[2]) {
+      const d = new Date(r[2]);
+      if (!latest || d > latest.date) {
+        latest = { type: "MO", date: d };
+      }
+    }
+  });
+
+  // ✅ Decision
+  if (!latest) {
+    // fallback → dump
+    return dumpResolution;
+  }
+
+  if (latest.type === "WO") return "Onsite Solution";
+  if (latest.type === "SO") return "Offsite Solution";
+  if (latest.type === "MO") return "Parts Shipped";
+
+  return dumpResolution;
+}
+
 async function buildCopySOOrders() {
   const store = getStore("readonly");
   const allData = await new Promise(res => {
@@ -2287,7 +2333,13 @@ async function buildRepairCases() {
 
   validCases.forEach(d => {
     const caseId = d[0];
-    const resolution = normalizeText(d[8]);
+    const calculatedResolution = getCalculatedResolution(
+      caseId,
+      wo,
+      so,
+      mo,
+      d[8]   // fallback only if no orders exist
+    );
 
     const firstOrder = getFirstOrderDate(caseId, wo, mo, so);
 
@@ -2302,23 +2354,23 @@ async function buildRepairCases() {
       )?.name || "";
 
     const onsiteRFC =
-      resolution === "onsite solution"
+      calculatedResolution === "onsite solution"
         ? (wo.filter(w => w[0] === caseId)
             .sort((a, b) => new Date(b[6]) - new Date(a[6]))[0]?.[5] || "")
         : "Not Found";
 
     const csrRFC =
-      resolution === "parts shipped"
+      calculatedResolution === "parts shipped"
         ? (getLatestMO(caseId, mo)?.[3] || "")
         : "Not Found";
 
     const benchRFC =
-      resolution === "offsite solution"
+      calculatedResolution === "offsite solution"
         ? (cso.find(c => c[0] === caseId)?.[2] || "")
         : "Not Found";
 
     const dnap =
-      resolution === "offsite solution" &&
+      calculatedResolution === "offsite solution" &&
       normalizeText(cso.find(c => c[0] === caseId)?.[4])
         .includes("product returned unrepaired to customer")
         ? "True"
@@ -2353,7 +2405,7 @@ async function buildRepairCases() {
 
     const newRow = [
       caseId,
-      d[1], d[2], d[3], d[6], d[8], d[9], d[15],
+      d[1], d[2], d[3], d[6], calculatedResolution, d[9], d[15],
       getCAGroup(d[2]),
       tl,
       calculateSBD({ createdOn: d[2], country: d[6] }, firstOrder, sbdConfig),
@@ -2591,6 +2643,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
