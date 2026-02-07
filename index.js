@@ -2076,6 +2076,14 @@ async function buildRepairCases() {
     q.onsuccess = () => r(q.result);
   });
 
+  // 🔥 Load Closed Cases Data to exclude closed cases from Repair
+  const closedData =
+    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
+  
+  const closedIds = new Set(
+    closedData.map(r => r[0])   // Case ID
+  );
+
   const existingRepair =
     all.find(x => x.sheetName === "Repair Cases")?.rows || [];
   
@@ -2099,7 +2107,8 @@ async function buildRepairCases() {
 
   const validCases = dump.filter(r =>
     ["parts shipped", "onsite solution", "offsite solution"]
-      .includes(normalizeText(r[8]))
+      .includes(normalizeText(r[8])) &&
+    !closedIds.has(r[0])        // 🚫 exclude already-closed cases
   );
 
   validCases.forEach(d => {
@@ -2408,6 +2417,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
