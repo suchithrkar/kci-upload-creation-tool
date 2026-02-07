@@ -1219,14 +1219,3 @@ table.dataTable th {
   background: #f7f8fa;
 }
 
-/* Ready-for-Closure cell clickable */
-.orc-table td.orc-clickable {
-  cursor: pointer;
-}
-
-.orc-table td.orc-clickable:hover {
-  background: rgba(0, 0, 0, 0.12);
-}
-
-
-
