@@ -1000,13 +1000,33 @@ async function processGNProCSOFile(file) {
   const oldTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
 
   // 1️⃣ Offsite cases
-  const offsiteCases = [
+  // 1️⃣ Identify repair cases from Dump (case IDs only)
+  const repairCaseIds = [
     ...new Set(
       dump
-        .filter(r => normalizeText(r[dumpResIdx]) === "offsite solution")
+        .filter(r =>
+          ["onsite solution", "parts shipped", "offsite solution"]
+            .includes(normalizeText(r[dumpResIdx]))
+        )
         .map(r => r[dumpCaseIdx])
     )
   ];
+  
+  // 2️⃣ Recalculate resolution per case
+  const offsiteCases = repairCaseIds.filter(caseId => {
+    const dumpRow = dump.find(r => r[dumpCaseIdx] === caseId);
+    if (!dumpRow) return false;
+  
+    const derivedResolution = getCalculatedResolution(
+      caseId,
+      [],            // WO not needed for GNPro
+      so,
+      [],            // MO not needed
+      dumpRow[dumpResIdx]
+    );
+  
+    return derivedResolution === "Offsite Solution";
+  });
 
   const finalRows = [];
 
@@ -1662,14 +1682,33 @@ async function buildCopySOOrders() {
   const csoCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
   const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
 
-  // Step 1: Offsite cases
-  const offsiteCases = [
+  // Step 1: Identify repair cases from Dump
+  const repairCaseIds = [
     ...new Set(
       dump
-        .filter(r => normalizeText(r[dumpIdx]) === "offsite solution")
+        .filter(r =>
+          ["onsite solution", "parts shipped", "offsite solution"]
+            .includes(normalizeText(r[dumpIdx]))
+        )
         .map(r => r[dumpCaseIdx])
     )
   ];
+  
+  // Step 2: Recalculate resolution
+  const offsiteCases = repairCaseIds.filter(caseId => {
+    const dumpRow = dump.find(r => r[dumpCaseIdx] === caseId);
+    if (!dumpRow) return false;
+  
+    const derivedResolution = getCalculatedResolution(
+      caseId,
+      [],       // WO not required here
+      so,
+      [],       // MO not required
+      dumpRow[dumpIdx]
+    );
+  
+    return derivedResolution === "Offsite Solution";
+  });
 
   const result = [];
 
@@ -1736,14 +1775,33 @@ async function buildCopyTrackingURLs() {
   const delCaseIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
   const delStatusIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
 
-  // ---- Stage 1: MO based tracking (primary) ----
-  const partsShippedCases = [
+  // Stage 1: Identify repair cases from Dump
+  const repairCaseIds = [
     ...new Set(
       dump
-        .filter(r => normalizeText(r[dumpResIdx]) === "parts shipped")
+        .filter(r =>
+          ["onsite solution", "parts shipped", "offsite solution"]
+            .includes(normalizeText(r[dumpResIdx]))
+        )
         .map(r => r[dumpCaseIdx])
     )
   ];
+  
+  // Stage 2: Recalculate resolution
+  const partsShippedCases = repairCaseIds.filter(caseId => {
+    const dumpRow = dump.find(r => r[dumpCaseIdx] === caseId);
+    if (!dumpRow) return false;
+  
+    const derivedResolution = getCalculatedResolution(
+      caseId,
+      [],       // WO not needed
+      [],       // SO not needed
+      mo,
+      dumpRow[dumpResIdx]
+    );
+  
+    return derivedResolution === "Parts Shipped";
+  });
 
   const moTrackingMap = new Map();
 
@@ -2643,6 +2701,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
