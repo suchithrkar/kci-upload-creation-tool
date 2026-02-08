@@ -221,9 +221,17 @@ async function loadTeams() {
 }
 
 async function setCurrentTeam(team) {
-  currentTeam = team;
+  currentTeam = team;                                   // 🔥 single source of truth
   localStorage.setItem("kci-last-team", team);
-  document.getElementById("teamToggle").textContent = team;
+
+  // Update toggle label
+  const toggle = document.getElementById("teamToggle");
+  if (toggle) {
+    toggle.textContent = team;
+  }
+
+  /* 🔥 RE-RENDER DROPDOWN SO ACTIVE CLASS APPLIES */
+  await renderTeamDropdown();
 
   /* 🔥 CLEAR ALL TABLES FIRST */
   Object.values(dataTablesMap).forEach(dt => {
@@ -2930,8 +2938,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await renderTeamDropdown();
   
   if (lastTeam) {
-    await setCurrentTeam(lastTeam);
+    await setCurrentTeam(lastTeam);   // 🔥 handles dropdown render internally
   } else {
+    await renderTeamDropdown();
     document.getElementById("teamToggle").textContent = "Select Team";
   }
   if (!lastTeam) {
@@ -2979,6 +2988,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
