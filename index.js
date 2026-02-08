@@ -299,21 +299,30 @@ async function renderTeamDropdown() {
       e.stopPropagation();              // 🔥 allow typing
     });
   
-    const confirm = document.createElement("div");
-    confirm.className = "team-confirm";
+    const sep = document.createElement("span");
+    sep.className = "team-sep";
+    sep.textContent = "|";
+    
+    const confirmWrap = document.createElement("span");
+    confirmWrap.className = "team-del team-confirm-inline";
+    
+    const confirm = document.createElement("span");
     confirm.textContent = "✔";
-  
-    confirm.onclick = async (e) => {
+    
+    confirmWrap.appendChild(confirm);
+    
+    confirmWrap.onclick = async (e) => {
       e.stopPropagation();
+    
       const name = input.value.trim();
       if (!name) return;
-  
+    
       isAddingTeamInline = false;
-  
+    
       const tx = db.transaction(TEAM_STORE, "readwrite");
       tx.objectStore(TEAM_STORE).put({ name });
-  
-      await setCurrentTeam(name);   // auto-select
+    
+      await setCurrentTeam(name);
     };
   
     input.onkeydown = (e) => {
@@ -325,7 +334,8 @@ async function renderTeamDropdown() {
     };
   
     row.appendChild(input);
-    row.appendChild(confirm);
+    row.appendChild(sep);
+    row.appendChild(confirmWrap);
     dropdown.appendChild(row);
   }
   const add = document.createElement("div");
@@ -3032,6 +3042,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
