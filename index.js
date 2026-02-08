@@ -258,7 +258,12 @@ async function renderTeamDropdown() {
       await deleteTeam(t.name);
     };
   
+    const sep = document.createElement("span");
+    sep.className = "team-sep";
+    sep.textContent = "|";
+    
     row.appendChild(name);
+    row.appendChild(sep);
     row.appendChild(del);
     dropdown.appendChild(row);
   });
@@ -2967,6 +2972,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
