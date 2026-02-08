@@ -2866,8 +2866,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (lastTeam) {
     setCurrentTeam(lastTeam);
   } else {
-    document.querySelector(".team-name").textContent = "Select Team";
-    document.querySelector(".team-sub").textContent = "No team selected";
+    document.getElementById("teamToggle").textContent = "Select Team";
   }
   if (!lastTeam) {
     document.querySelectorAll(
@@ -2931,6 +2930,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
