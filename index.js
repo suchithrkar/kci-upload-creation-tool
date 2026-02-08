@@ -3,8 +3,9 @@ let csoFile = null;
 let trackingFile = null;
 let workbookCache = null;
 let tablesMap = {};
-const dataTablesMap = {};
 let currentTeam = null;
+let isAddingTeamInline = false;
+const dataTablesMap = {};
 const TEAM_STORE = "teams";
 const lastTeam = localStorage.getItem("kci-last-team");
 const CA_BUCKETS = [
@@ -283,11 +284,54 @@ async function renderTeamDropdown() {
     dropdown.appendChild(row);
   });
 
+  // ----- INLINE ADD TEAM ROW -----
+  if (isAddingTeamInline) {
+    const row = document.createElement("div");
+    row.className = "team-row team-add-inline";
+  
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "New team name";
+    input.autofocus = true;
+  
+    const confirm = document.createElement("div");
+    confirm.className = "team-confirm";
+    confirm.textContent = "✔";
+  
+    confirm.onclick = async (e) => {
+      e.stopPropagation();
+      const name = input.value.trim();
+      if (!name) return;
+  
+      isAddingTeamInline = false;
+  
+      const tx = db.transaction(TEAM_STORE, "readwrite");
+      tx.objectStore(TEAM_STORE).put({ name });
+  
+      await setCurrentTeam(name);   // auto-select
+      await renderTeamDropdown();
+    };
+  
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") confirm.click();
+      if (e.key === "Escape") {
+        isAddingTeamInline = false;
+        renderTeamDropdown();
+      }
+    };
+  
+    row.appendChild(input);
+    row.appendChild(confirm);
+    dropdown.appendChild(row);
+  }
   const add = document.createElement("div");
   add.className = "team-add";
   add.textContent = "+ Add Team";
-  add.onclick = addTeamInline;
-
+  add.onclick = () => {
+    isAddingTeamInline = true;
+    renderTeamDropdown();
+  };
+  
   dropdown.appendChild(add);
 }
 
@@ -301,17 +345,6 @@ document.getElementById("teamToggle").onclick = (e) => {
 document.addEventListener("click", () => {
   document.getElementById("teamDropdown").style.display = "none";
 });
-
-async function addTeamInline() {
-  const name = prompt("Enter new team name");
-  if (!name) return;
-
-  const tx = db.transaction(TEAM_STORE, "readwrite");
-  tx.objectStore(TEAM_STORE).put({ name });
-  
-  await renderTeamDropdown();
-  await setCurrentTeam(name);   // 🔥 auto-select new team
-}
 
 async function deleteTeam(team) {
   // 1️⃣ Delete all team data from sheets store
@@ -2988,6 +3021,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
