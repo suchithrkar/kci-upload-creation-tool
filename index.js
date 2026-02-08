@@ -258,13 +258,27 @@ async function renderTeamDropdown() {
       await deleteTeam(t.name);
     };
   
+    const delWrap = document.createElement("span");
+    delWrap.className = "team-del";
+    
     const sep = document.createElement("span");
     sep.className = "team-sep";
     sep.textContent = "|";
     
+    const del = document.createElement("span");
+    del.textContent = "✕";
+    
+    delWrap.appendChild(sep);
+    delWrap.appendChild(del);
+    
+    delWrap.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm(`Delete team "${t.name}" and ALL its data?`)) return;
+      await deleteTeam(t.name);
+    };
+    
     row.appendChild(name);
-    row.appendChild(sep);
-    row.appendChild(del);
+    row.appendChild(delWrap);
     dropdown.appendChild(row);
   });
 
@@ -2972,6 +2986,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
