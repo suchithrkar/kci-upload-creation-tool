@@ -223,7 +223,8 @@ async function loadTeams() {
 async function setCurrentTeam(team) {
   currentTeam = team;
   localStorage.setItem("kci-last-team", team);
-  document.getElementById("teamToggle").textContent = team + " ▾";
+  document.querySelector(".team-name").textContent = team;
+  document.querySelector(".team-sub").textContent = "Active team";
   await loadDataFromDB();   // 🔥 reload team-scoped data
   document.querySelectorAll(
     ".action-bar button, #processBtn"
@@ -238,7 +239,7 @@ async function renderTeamDropdown() {
 
   teams.forEach(t => {
     const row = document.createElement("div");
-    row.className = "team-row";
+    row.className = "team-row" + (t.name === currentTeam ? " active" : "");
 
     const name = document.createElement("span");
     name.textContent = t.name;
@@ -265,7 +266,7 @@ async function renderTeamDropdown() {
   dropdown.appendChild(add);
 }
 
-document.getElementById("teamToggle").onclick = (e) => {
+document.querySelector(".team-toggle-btn").onclick = (e) => {
   e.stopPropagation();
   const dd = document.getElementById("teamDropdown");
   dd.style.display = dd.style.display === "block" ? "none" : "block";
@@ -2865,7 +2866,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (lastTeam) {
     setCurrentTeam(lastTeam);
   } else {
-    document.getElementById("teamToggle").textContent = "Select Team ▾";
+    document.querySelector(".team-name").textContent = "Select Team";
+    document.querySelector(".team-sub").textContent = "No team selected";
   }
   if (!lastTeam) {
     document.querySelectorAll(
@@ -2929,6 +2931,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
