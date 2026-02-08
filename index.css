@@ -1444,17 +1444,33 @@ header .team-selector .cc-agent-toggle {
 
 /* ===== DELETE ZONE (| + ✕) ===== */
 
+/* Visual separator */
+.team-sep {
+  color: #aaa;
+  padding: 0 4px;
+  cursor: default;
+}
+
+/* Delete click zone (✕ → right edge) */
 .team-del {
+  margin-left: auto;        /* 🔥 push to edge */
+  padding: 0 8px;           /* 🔥 hit area */
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 25px;                 /* 🔥 total click width */
-  flex-shrink: 0;
-  cursor: pointer;
 }
 
 .team-del:hover {
   background: rgba(229, 57, 53, 0.08);
+}
+
+.team-del span {
+  font-size: 13px;
+  color: #888;
+}
+
+.team-del:hover span {
+  color: #e53935;
 }
 
 .team-del .team-sep {
@@ -1471,6 +1487,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
