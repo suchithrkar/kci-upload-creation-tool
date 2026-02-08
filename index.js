@@ -224,7 +224,15 @@ async function setCurrentTeam(team) {
   currentTeam = team;
   localStorage.setItem("kci-last-team", team);
   document.getElementById("teamToggle").textContent = team;
-  await loadDataFromDB();   // 🔥 reload team-scoped data
+
+  /* 🔥 CLEAR ALL TABLES FIRST */
+  Object.values(dataTablesMap).forEach(dt => {
+    dt.clear().draw(false);
+  });
+
+  /* 🔥 NOW LOAD TEAM DATA */
+  await loadDataFromDB();
+
   document.querySelectorAll(
     ".action-bar button, #processBtn"
   ).forEach(btn => btn.disabled = false);
@@ -243,6 +251,9 @@ async function renderTeamDropdown() {
     const name = document.createElement("span");
     name.textContent = t.name;
     name.onclick = () => setCurrentTeam(t.name);
+
+    await setCurrentTeam(t.name);
+    await renderTeamDropdown(); // refresh active state
 
     const del = document.createElement("span");
     del.textContent = "✕";
@@ -2860,7 +2871,8 @@ document.getElementById("processRepairBtn")
   });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await openDB();
+  await openDB
+  initEmptyTables();
   await renderTeamDropdown();
   
   if (lastTeam) {
@@ -2873,11 +2885,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       ".action-bar button, #processBtn"
     ).forEach(btn => btn.disabled = true);
   }
-  initEmptyTables();
+  
 
   // IMPORTANT: wait for DataTables to fully initialize
   requestAnimationFrame(() => {
-    loadDataFromDB();
     $('#ccSummaryTable').DataTable({
       paging: false,
       searching: false,
@@ -2913,6 +2924,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
