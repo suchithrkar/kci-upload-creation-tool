@@ -318,12 +318,8 @@ async function deleteTeam(team) {
     let nextTeam = null;
 
     if (teams.length) {
-      // Prefer team AFTER deleted one, else first available
-      const idx = teams.findIndex(t => t.name === team);
-      nextTeam =
-        teams[idx + 1]?.name ||
-        teams[idx - 1]?.name ||
-        teams[0].name;
+      // Prefer first team in the remaining list
+      nextTeam = teams[0].name;
     }
 
     // 5️⃣ Update UI + state
@@ -2957,6 +2953,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
