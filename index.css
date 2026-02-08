@@ -1342,12 +1342,8 @@ table.dataTable th {
 
 /* Active team */
 .team-row.active {
-  background: rgba(21, 25, 35, 0.06);   /* slightly softer */
+  background: rgba(21, 25, 35, 0.08);   /* slightly softer */
   font-weight: 600;
-
-  /* 🔥 subtle but clear separators */
-  border-top: 1px solid rgba(21, 25, 35, 0.18);
-  border-bottom: 1px solid rgba(21, 25, 35, 0.18);
 }
 
 .team-row.active:hover {
@@ -1461,6 +1457,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
