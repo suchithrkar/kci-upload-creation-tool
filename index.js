@@ -233,9 +233,7 @@ async function setCurrentTeam(team) {
   /* 🔥 NOW LOAD TEAM DATA */
   await loadDataFromDB();
 
-  document.querySelectorAll(
-    ".action-bar button, #processBtn"
-  ).forEach(btn => btn.disabled = false);
+  updateProcessButtonState();
 }
 
 async function renderTeamDropdown() {
@@ -768,7 +766,7 @@ document.getElementById('kciInput').addEventListener('change', e => {
   }
 
   kciFile = file;
-  enableProcessIfReady();
+  updateProcessButtonState();
 });
 
 document.getElementById('csoInput').addEventListener('change', e => {
@@ -782,7 +780,7 @@ document.getElementById('csoInput').addEventListener('change', e => {
   }
 
   csoFile = file;
-  enableProcessIfReady();
+  updateProcessButtonState();
 });
 
 document.getElementById('trackingInput').addEventListener('change', e => {
@@ -796,7 +794,7 @@ document.getElementById('trackingInput').addEventListener('change', e => {
   }
 
   trackingFile = file;
-  enableProcessIfReady();
+  updateProcessButtonState();
 });
 
 document.getElementById('processBtn').addEventListener('click', async () => {
@@ -817,6 +815,7 @@ document.getElementById('processBtn').addEventListener('click', async () => {
   
     kciFile = null;
     document.getElementById('kciInput').value = "";
+    updateProcessButtonState();
     endProgressContext("KCI Excel processed");
     return;
   }
@@ -826,6 +825,7 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     await processGNProCSOFile(csoFile);
     csoFile = null;
     document.getElementById('csoInput').value = "";
+    updateProcessButtonState();
     endProgressContext("GNPro CSO processed");
     return;
   }
@@ -835,16 +835,20 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     await processTrackingResultsFile(trackingFile);
     trackingFile = null;
     document.getElementById('trackingInput').value = "";
+    updateProcessButtonState();
     endProgressContext("Tracking Results processed");
     return;
   }
 
 });
 
-function enableProcessIfReady() {
-  if (kciFile || csoFile || trackingFile) {
-    document.getElementById('processBtn').disabled = false;
-  }
+function updateProcessButtonState() {
+  const btn = document.getElementById("processBtn");
+
+  btn.disabled = !(
+    currentTeam &&
+    (kciFile || csoFile || trackingFile)
+  );
 }
 
 let progressContext = null;
@@ -2937,6 +2941,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       dom: 't'
     });
   });
+  updateProcessButtonState();
 });
 
 document.addEventListener("keydown", (e) => {
@@ -2953,6 +2958,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
