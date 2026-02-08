@@ -1411,20 +1411,14 @@ header .team-selector .cc-agent-toggle {
 
 /* ===== TEAM ROW SPLIT ACTIONS ===== */
 
-.team-row span {
+/* Padding ONLY for team name text */
+.team-row > span:first-child {
   padding: 2px 6px;
 }
 
 /* Team name click area */
 .team-row span:first-child {
   flex: 1;
-}
-
-/* Separator */
-.team-sep {
-  color: #aaa;
-  cursor: default;
-  padding: 0 4px;
 }
 
 .team-row span:last-child:hover {
@@ -1436,14 +1430,15 @@ header .team-selector .cc-agent-toggle {
 /* Visual separator */
 .team-sep {
   color: #aaa;
-  padding: 0 4px;
+  padding: 0;          /* 🔥 no spacing */
+  margin-right: 4px;   /* visual gap only, no hit area */
   cursor: default;
 }
 
 /* Delete click zone (✕ → right edge) */
 .team-del {
-  margin-left: auto;        /* 🔥 push to edge */
-  padding: 0 8px;           /* 🔥 hit area */
+  margin-left: auto;     /* push to edge */
+  padding: 0 8px;        /* 🔥 click area stays */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1454,6 +1449,8 @@ header .team-selector .cc-agent-toggle {
 }
 
 .team-del span {
+  padding: 0;            /* 🔥 no glyph padding */
+  margin: 0;
   font-size: 13px;
   color: #888;
 }
@@ -1476,6 +1473,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
