@@ -1105,10 +1105,13 @@ async function processGNProCSOFile(file) {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
-
-  const dump = allData.find(r => r.sheetName === "Dump")?.rows || [];
-  const so = allData.find(r => r.sheetName === "SO")?.rows || [];
-  const oldCso = allData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  
+  // 🔒 TEAM FILTER
+  const teamData = allData.filter(r => r.team === currentTeam);
+  
+  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
+  const oldCso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
   // Build GNPro CSV map
   const csvText = await file.text();
@@ -1266,9 +1269,12 @@ async function openClosedCasesReport() {
     const q = store.getAll();
     q.onsuccess = () => r(q.result);
   });
-
+  
+  // 🔒 TEAM FILTER
+  const teamData = all.filter(r => r.team === currentTeam);
+  
   const closed =
-    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
+    teamData.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
 
   if (!closed.length) {
     alert("No Closed Cases Data available.");
@@ -1291,16 +1297,19 @@ async function openOpenRepairCasesReport() {
     const q = store.getAll();
     q.onsuccess = () => r(q.result);
   });
-
+  
+  // 🔒 TEAM FILTER
+  const teamData = all.filter(r => r.team === currentTeam);
+  
   const repair =
-    all.find(x => x.sheetName === "Repair Cases")?.rows || [];
+    teamData.find(x => x.sheetName === "Repair Cases")?.rows || [];
 
   if (!repair.length) {
     alert("Repair Cases data not available.");
     return;
   }
 
-  const openCases = buildOpenRepairCasesList(all);
+  const openCases = buildOpenRepairCasesList(teamData);
   const openMatrix =
     buildMatrixFromCases(openCases, repair);
 
@@ -1825,10 +1834,13 @@ async function buildCopySOOrders() {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
-
-  const dump = allData.find(r => r.sheetName === "Dump")?.rows || [];
-  const so = allData.find(r => r.sheetName === "SO")?.rows || [];
-  const cso = allData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  
+  // 🔒 TEAM FILTER
+  const teamData = allData.filter(r => r.team === currentTeam);
+  
+  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
+  const cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
   const dumpIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
   const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
@@ -1905,12 +1917,15 @@ async function buildCopyTrackingURLs() {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
-
-  const dump = allData.find(r => r.sheetName === "Dump")?.rows || [];
-  const mo = allData.find(r => r.sheetName === "MO")?.rows || [];
-  const moItems = allData.find(r => r.sheetName === "MO Items")?.rows || [];
-  const cso = allData.find(r => r.sheetName === "CSO Status")?.rows || [];
-  const delivery = allData.find(r => r.sheetName === "Delivery Details")?.rows || [];
+  
+  // 🔒 TEAM FILTER
+  const teamData = allData.filter(r => r.team === currentTeam);
+  
+  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
+  const moItems = teamData.find(r => r.sheetName === "MO Items")?.rows || [];
+  const cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  const delivery = teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
 
   const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
   const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
@@ -2071,12 +2086,15 @@ async function processTrackingResultsFile(file) {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
-
+  
+  // 🔒 TEAM FILTER
+  const teamData = allData.filter(r => r.team === currentTeam);
+  
   const dump =
-    allData.find(r => r.sheetName === "Dump")?.rows || [];
-
+    teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  
   const oldDelivery =
-    allData.find(r => r.sheetName === "Delivery Details")?.rows || [];
+    teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
 
   const dumpCaseIdx =
     TABLE_SCHEMAS["Dump"].indexOf("Case ID");
@@ -2536,16 +2554,19 @@ async function buildRepairCases() {
     q.onsuccess = () => r(q.result);
   });
 
+  // 🔒 TEAM FILTER
+  const teamData = all.filter(r => r.team === currentTeam);
+
   // 🔥 Load Closed Cases Data to exclude closed cases from Repair
   const closedData =
-    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
+    teamData.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
   
   const closedIds = new Set(
     closedData.map(r => r[0])   // Case ID
   );
 
   const existingRepair =
-    all.find(x => x.sheetName === "Repair Cases")?.rows || [];
+    teamData.find(x => x.sheetName === "Repair Cases")?.rows || [];
   
   const repairMap = new Map();
   // Key = Case ID, Value = row array
@@ -2553,17 +2574,17 @@ async function buildRepairCases() {
     repairMap.set(r[0], r);
   });
 
-  const dump = all.find(x => x.sheetName === "Dump")?.rows || [];
-  const wo = all.find(x => x.sheetName === "WO")?.rows || [];
-  const mo = all.find(x => x.sheetName === "MO")?.rows || [];
-  const moItems = all.find(x => x.sheetName === "MO Items")?.rows || [];
-  const so = all.find(x => x.sheetName === "SO")?.rows || [];
-  const cso = all.find(x => x.sheetName === "CSO Status")?.rows || [];
-  const delivery = all.find(x => x.sheetName === "Delivery Details")?.rows || [];
+  const dump = teamData.find(x => x.sheetName === "Dump")?.rows || [];
+  const wo = teamData.find(x => x.sheetName === "WO")?.rows || [];
+  const mo = teamData.find(x => x.sheetName === "MO")?.rows || [];
+  const moItems = teamData.find(x => x.sheetName === "MO Items")?.rows || [];
+  const so = teamData.find(x => x.sheetName === "SO")?.rows || [];
+  const cso = teamData.find(x => x.sheetName === "CSO Status")?.rows || [];
+  const delivery = teamData.find(x => x.sheetName === "Delivery Details")?.rows || [];
 
-  const tlMap = all.find(x => x.sheetName === "TL_MAP")?.data || [];
-  const marketMap = all.find(x => x.sheetName === "MARKET_MAP")?.data || [];
-  const sbdConfig = all.find(x => x.sheetName === "SBD Cut Off Times");
+  const tlMap = teamData.find(x => x.sheetName === "TL_MAP")?.data || [];
+  const marketMap = teamData.find(x => x.sheetName === "MARKET_MAP")?.data || [];
+  const sbdConfig = teamData.find(x => x.sheetName === "SBD Cut Off Times");
 
   const validCases = dump.filter(r =>
     ["parts shipped", "onsite solution", "offsite solution"]
@@ -2699,8 +2720,11 @@ async function buildClosedCasesReport() {
     q.onsuccess = () => r(q.result);
   });
 
+  // 🔒 TEAM FILTER
+  const teamData = all.filter(r => r.team === currentTeam);
+
   const existingClosed =
-    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
+    teamData.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
   
   const closedMap = new Map();
   // Key = Case ID, Value = row
@@ -2710,8 +2734,8 @@ async function buildClosedCasesReport() {
 
   const newlyClosedIds = new Set();
 
-  const closed = all.find(x => x.sheetName === "Closed Cases")?.rows || [];
-  const repair = all.find(x => x.sheetName === "Repair Cases")?.rows || [];
+  const closed = teamData.find(x => x.sheetName === "Closed Cases")?.rows || [];
+  const repair = teamData.find(x => x.sheetName === "Repair Cases")?.rows || [];
 
   const rows = [];
 
@@ -2807,7 +2831,7 @@ document.getElementById("processRepairBtn")
       q.onsuccess = () => r(q.result);
     });
 
-    const dump = all.find(x => x.sheetName === "Dump")?.rows || [];
+    const dump = teamData.find(x => x.sheetName === "Dump")?.rows || [];
     const validCases = dump.filter(r =>
       ["parts shipped", "onsite solution", "offsite solution"]
         .includes(normalizeText(r[8]))
@@ -2903,6 +2927,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
