@@ -295,22 +295,58 @@ async function addTeamInline() {
 }
 
 async function deleteTeam(team) {
+  // 1️⃣ Delete all team data from sheets store
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
 
-  const req = store.getAllKeys();
-  req.onsuccess = () => {
-    req.result
+  const keysReq = store.getAllKeys();
+  keysReq.onsuccess = async () => {
+    keysReq.result
       .filter(k => k.startsWith(team + "|"))
       .forEach(k => store.delete(k));
+
+    // 2️⃣ Delete team from TEAM_STORE
+    await new Promise(res => {
+      const ttx = db.transaction(TEAM_STORE, "readwrite");
+      ttx.objectStore(TEAM_STORE).delete(team).onsuccess = res;
+    });
+
+    // 3️⃣ Load remaining teams
+    const teams = await loadTeams();
+
+    // 4️⃣ Decide next team to auto-select
+    let nextTeam = null;
+
+    if (teams.length) {
+      // Prefer team AFTER deleted one, else first available
+      const idx = teams.findIndex(t => t.name === team);
+      nextTeam =
+        teams[idx + 1]?.name ||
+        teams[idx - 1]?.name ||
+        teams[0].name;
+    }
+
+    // 5️⃣ Update UI + state
+    if (nextTeam) {
+      await setCurrentTeam(nextTeam);
+    } else {
+      // No teams left → reset app state
+      currentTeam = null;
+      localStorage.removeItem("kci-last-team");
+      document.getElementById("teamToggle").textContent = "Select Team";
+
+      Object.values(dataTablesMap).forEach(dt =>
+        dt.clear().draw(false)
+      );
+
+      document.querySelectorAll(
+        ".action-bar button, #processBtn"
+      ).forEach(btn => btn.disabled = true);
+    }
+
+    // 6️⃣ Refresh dropdown to reflect deletion + active team
+    await renderTeamDropdown();
   };
-
-  db.transaction(TEAM_STORE, "readwrite")
-    .objectStore(TEAM_STORE)
-    .delete(team);
-
-  currentTeam = null;
-  location.reload();
 }
 
 function openModal(id) {
@@ -2921,6 +2957,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
