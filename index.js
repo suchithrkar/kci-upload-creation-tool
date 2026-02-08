@@ -2831,6 +2831,8 @@ document.getElementById("processRepairBtn")
       q.onsuccess = () => r(q.result);
     });
 
+    const teamData = all.filter(r => r.team === currentTeam);
+
     const dump = teamData.find(x => x.sheetName === "Dump")?.rows || [];
     const validCases = dump.filter(r =>
       ["parts shipped", "onsite solution", "offsite solution"]
@@ -2927,6 +2929,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
