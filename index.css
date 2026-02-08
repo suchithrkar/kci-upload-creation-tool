@@ -1421,10 +1421,6 @@ header .team-selector .cc-agent-toggle {
   flex: 1;
 }
 
-.team-row span:last-child:hover {
-  color: #e53935;
-}
-
 /* ===== DELETE ZONE (| + ✕) ===== */
 
 /* Visual separator */
@@ -1473,6 +1469,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
