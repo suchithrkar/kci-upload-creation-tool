@@ -1354,10 +1354,6 @@ table.dataTable th {
   background: #dde2ea;
 }
 
-.team-row span:last-child:hover {
-  color: #e53935;
-}
-
 /* Add team row */
 .team-add {
   padding: 6px 8px;
@@ -1472,5 +1468,6 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
