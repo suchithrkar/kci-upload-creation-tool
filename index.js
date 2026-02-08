@@ -2899,23 +2899,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
-const themeToggle = document.getElementById('themeToggle');
-
-function setTheme(theme) {
-  document.body.setAttribute('data-theme', theme);
-  localStorage.setItem('kci-theme', theme);
-  themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
-}
-
-themeToggle.addEventListener('click', () => {
-  const current = document.body.getAttribute('data-theme') || 'dark';
-  setTheme(current === 'dark' ? 'light' : 'dark');
-});
-
-// Init theme on load
-const savedTheme = localStorage.getItem('kci-theme') || 'dark';
-setTheme(savedTheme);
-
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
 
@@ -2930,6 +2913,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
