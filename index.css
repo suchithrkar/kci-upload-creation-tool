@@ -1449,15 +1449,6 @@ header .team-selector .cc-agent-toggle {
   cursor: inherit;
 }
 
-.team-del span:last-child {
-  color: #888;
-  font-size: 13px;
-}
-
-.team-del:hover span:last-child {
-  color: #e53935;
-}
-
 /* ===== INLINE ADD TEAM ===== */
 
 .team-add-inline {
@@ -1493,6 +1484,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm:hover {
   background: #2fdc7c;
 }
+
 
 
 
