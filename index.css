@@ -1331,7 +1331,7 @@ table.dataTable th {
 .team-row {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
+  padding: 0;                 /* 🔥 no row padding */
   font-size: 12px;
   cursor: pointer;
 }
@@ -1411,14 +1411,10 @@ header .team-selector .cc-agent-toggle {
 
 /* ===== TEAM ROW SPLIT ACTIONS ===== */
 
-/* Padding ONLY for team name text */
+/* Team name padding only */
 .team-row > span:first-child {
-  padding: 2px 6px;
-}
-
-/* Team name click area */
-.team-row span:first-child {
-  flex: 1;
+  padding: 6px 8px;           /* 🔥 same as old row padding */
+  flex: 1;                    /* keep name expanding */
 }
 
 /* ===== DELETE ZONE (| + ✕) ===== */
@@ -1426,15 +1422,15 @@ header .team-selector .cc-agent-toggle {
 /* Visual separator */
 .team-sep {
   color: #aaa;
-  padding: 0;          /* 🔥 no spacing */
-  margin-right: 4px;   /* visual gap only, no hit area */
+  padding: 0;          /* no padding */
+  margin: 0;           /* 🔥 no margin */
   cursor: default;
 }
 
 /* Delete click zone (✕ → right edge) */
 .team-del {
-  margin-left: auto;     /* push to edge */
-  padding: 0 8px;        /* 🔥 click area stays */
+  margin-left: auto;          /* push to edge */
+  padding: 6px 8px;           /* 🔥 its own padding */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1469,6 +1465,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
