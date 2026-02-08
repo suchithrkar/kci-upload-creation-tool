@@ -1342,27 +1342,16 @@ table.dataTable th {
 
 /* Active team */
 .team-row.active {
-  background: rgba(21, 25, 35, 0.08);   /* subtle, neutral */
+  background: rgba(21, 25, 35, 0.06);   /* slightly softer */
   font-weight: 600;
-}
 
-.team-row.active::before {
-  content: "";
-  width: 3px;
-  background: #151923;                /* header-matched */
-  align-self: stretch;
-}
-
-.team-row.active::before {
-  content: "";
-  width: 3px;
-  background: #2b6cb0;          /* 🔥 left indicator */
-  align-self: stretch;
-  margin-right: 6px;
+  /* 🔥 subtle but clear separators */
+  border-top: 1px solid rgba(21, 25, 35, 0.18);
+  border-bottom: 1px solid rgba(21, 25, 35, 0.18);
 }
 
 .team-row.active:hover {
-  background: #dde2ea;
+  background: rgba(21, 25, 35, 0.10);
 }
 
 /* Add team row */
@@ -1472,6 +1461,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
