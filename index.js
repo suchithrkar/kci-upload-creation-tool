@@ -400,10 +400,9 @@ async function deleteTeam(team) {
       document.querySelectorAll(
         ".action-bar button, #processBtn"
       ).forEach(btn => btn.disabled = true);
+    } else {
+      await renderTeamDropdown();       // only needed when no active team
     }
-
-    // 6️⃣ Refresh dropdown to reflect deletion + active team
-    await renderTeamDropdown();
   };
 }
 
@@ -3031,6 +3030,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
