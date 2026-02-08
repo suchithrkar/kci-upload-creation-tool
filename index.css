@@ -1431,13 +1431,6 @@ header .team-selector .cc-agent-toggle {
   padding: 0 4px;
 }
 
-/* Delete (✕) button */
-.team-row span:last-child {
-  color: #888;
-  font-size: 13px;
-  cursor: pointer;
-}
-
 .team-row span:last-child:hover {
   color: #e53935;
 }
@@ -1487,6 +1480,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
