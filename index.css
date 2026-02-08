@@ -1350,6 +1350,139 @@ table.dataTable th {
   border-top: 1px solid #ddd;
 }
 
+/* ============================= */
+/* TEAM SELECTOR – VISUAL OVERHAUL */
+/* ============================= */
+
+.team-selector {
+  position: relative;
+  margin-left: auto;
+}
+
+/* Main button */
+.team-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  background: #ffffff;
+  color: #151923;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+  padding: 6px 12px;
+
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+
+  min-width: 220px;
+}
+
+.team-toggle-btn:hover {
+  background: #f4f6f9;
+}
+
+.team-toggle-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(21, 25, 35, 0.25);
+}
+
+/* Icon */
+.team-icon {
+  font-size: 16px;
+}
+
+/* Text stack */
+.team-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  flex: 1;
+  text-align: left;
+}
+
+.team-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.team-sub {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+/* Caret */
+.team-caret {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Dropdown */
+.team-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+
+  background: #ffffff;
+  border: 1px solid #d6d6d6;
+  border-radius: 8px;
+  min-width: 260px;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  z-index: 500;
+  overflow: hidden;
+}
+
+/* Team rows */
+.team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 10px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.team-row:hover {
+  background: #f4f6f9;
+}
+
+/* Active team */
+.team-row.active {
+  background: #eef1f6;
+  font-weight: 700;
+}
+
+/* Delete button */
+.team-row span:last-child {
+  color: #999;
+  font-size: 13px;
+  opacity: 0;
+}
+
+.team-row:hover span:last-child {
+  opacity: 1;
+}
+
+.team-row span:last-child:hover {
+  color: #e53935;
+}
+
+/* Add team */
+.team-add {
+  padding: 10px 12px;
+  border-top: 1px solid #e0e0e0;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.team-add:hover {
+  background: #f4f6f9;
+}
+
 
 
 
