@@ -1356,7 +1356,9 @@ table.dataTable th {
 /* Add team row */
 .team-add {
   padding: 6px 8px;
-  font-weight: 700;
+  font-size: 12px;        /* match team-row */
+  font-weight: 600;       /* match toggle / rows */
+  text-align: center;     /* 🔥 center ONLY this row */
   border-top: 1px solid #d6d6d6;
   cursor: pointer;
 }
@@ -1402,5 +1404,38 @@ header .team-selector .cc-agent-toggle {
   color: #1f1f1f;   /* 🔥 ensures readable in light-only mode */
 }
 
+/* ===== TEAM DROPDOWN: REMOVE INNER PADDING ===== */
+#teamDropdown {
+  padding: 0;        /* 🔥 removes boxed padding */
+}
+
+/* ===== TEAM ROW SPLIT ACTIONS ===== */
+
+.team-row span {
+  padding: 2px 6px;
+}
+
+/* Team name click area */
+.team-row span:first-child {
+  flex: 1;
+}
+
+/* Separator */
+.team-sep {
+  color: #aaa;
+  cursor: default;
+  padding: 0 4px;
+}
+
+/* Delete (✕) button */
+.team-row span:last-child {
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.team-row span:last-child:hover {
+  color: #e53935;
+}
 
 
