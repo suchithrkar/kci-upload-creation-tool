@@ -247,14 +247,11 @@ async function renderTeamDropdown() {
   teams.forEach(t => {
     const row = document.createElement("div");
     row.className = "team-row" + (t.name === currentTeam ? " active" : "");
-
+  
     const name = document.createElement("span");
     name.textContent = t.name;
     name.onclick = () => setCurrentTeam(t.name);
-
-    await setCurrentTeam(t.name);
-    await renderTeamDropdown(); // refresh active state
-
+  
     const del = document.createElement("span");
     del.textContent = "✕";
     del.onclick = async (e) => {
@@ -262,7 +259,7 @@ async function renderTeamDropdown() {
       if (!confirm(`Delete team "${t.name}" and ALL its data?`)) return;
       await deleteTeam(t.name);
     };
-
+  
     row.appendChild(name);
     row.appendChild(del);
     dropdown.appendChild(row);
@@ -2871,12 +2868,12 @@ document.getElementById("processRepairBtn")
   });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await openDB
+  await openDB();
   initEmptyTables();
   await renderTeamDropdown();
   
   if (lastTeam) {
-    setCurrentTeam(lastTeam);
+    await setCurrentTeam(lastTeam);
   } else {
     document.getElementById("teamToggle").textContent = "Select Team";
   }
@@ -2924,6 +2921,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
