@@ -1432,6 +1432,15 @@ header .team-selector .cc-agent-toggle {
   background: rgba(229, 57, 53, 0.08);
 }
 
+/* Override delete hover for inline confirm */
+.team-del.team-confirm-inline:hover {
+  background: rgba(56, 229, 141, 0.12);
+}
+
+.team-del.team-confirm-inline:hover span {
+  color: #1b5e20;
+}
+
 .team-del span {
   padding: 0;            /* 🔥 no glyph padding */
   margin: 0;
@@ -1471,6 +1480,10 @@ header .team-selector .cc-agent-toggle {
   background: transparent;
 }
 
+.team-add-inline input {
+  flex: 0 0 auto;   /* 🔒 lock width */
+}
+
 .team-add-inline input:focus {
   outline: none;
 }
@@ -1494,3 +1507,4 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
