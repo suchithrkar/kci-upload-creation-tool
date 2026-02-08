@@ -232,6 +232,12 @@ async function setCurrentTeam(team) {
     toggle.textContent = team;
   }
 
+  // 🔥 Close team dropdown after selection
+  const dropdown = document.getElementById("teamDropdown");
+  if (dropdown) {
+    dropdown.style.display = "none";
+  }
+
   /* 🔥 RE-RENDER DROPDOWN SO ACTIVE CLASS APPLIES */
   await renderTeamDropdown();
 
@@ -3044,6 +3050,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
