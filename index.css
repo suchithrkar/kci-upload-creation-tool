@@ -1321,9 +1321,10 @@ table.dataTable th {
 #teamDropdown {
   left: 0;              /* 🔥 anchor to toggle */
   right: auto;          /* 🔥 remove stretch */
-  width: 120px;         /* 🔥 now width is respected */
+  width: 157.6px;         /* 🔥 now width is respected */
   box-sizing: border-box;
   z-index: 300;
+  padding: 0;
 }
 
 /* Team row behavior */
@@ -1408,11 +1409,6 @@ header .team-selector .cc-agent-toggle {
   color: #1f1f1f;   /* 🔥 ensures readable in light-only mode */
 }
 
-/* ===== TEAM DROPDOWN: REMOVE INNER PADDING ===== */
-#teamDropdown {
-  padding: 0;        /* 🔥 removes boxed padding */
-}
-
 /* ===== TEAM ROW SPLIT ACTIONS ===== */
 
 .team-row span {
@@ -1480,6 +1476,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
