@@ -1458,6 +1458,42 @@ header .team-selector .cc-agent-toggle {
   color: #e53935;
 }
 
+/* ===== INLINE ADD TEAM ===== */
+
+.team-add-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7f8fa;
+}
+
+.team-add-inline input {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+}
+
+.team-add-inline input:focus {
+  outline: none;
+  border-color: #38e58d;
+}
+
+/* Confirm button (✔) */
+.team-confirm {
+  background: #38e58d;
+  color: #0b3d1c;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.team-confirm:hover {
+  background: #2fdc7c;
+}
+
 
 
 
