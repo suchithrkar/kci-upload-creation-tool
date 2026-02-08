@@ -1319,21 +1319,16 @@ table.dataTable th {
 
 /* Dropdown must align with toggle */
 #teamDropdown {
-  right: 0;
-  left: auto;
-  z-index: 300;
-}
-
-/* Match dropdown width to toggle */
-#teamDropdown {
-  width: 120px;          /* 🔥 same as toggle */
+  left: 0;              /* 🔥 anchor to toggle */
+  right: auto;          /* 🔥 remove stretch */
+  width: 120px;         /* 🔥 now width is respected */
   box-sizing: border-box;
+  z-index: 300;
 }
 
 /* Team row behavior */
 .team-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 6px 8px;
   font-size: 12px;
@@ -1346,8 +1341,16 @@ table.dataTable th {
 
 /* Active team */
 .team-row.active {
-  background: #e6e9ef;          /* 🔥 clear highlight */
+  background: #cfe3f8;          /* 🔥 clearly visible */
   font-weight: 700;
+}
+
+.team-row.active::before {
+  content: "";
+  width: 3px;
+  background: #2b6cb0;          /* 🔥 left indicator */
+  align-self: stretch;
+  margin-right: 6px;
 }
 
 .team-row.active:hover {
@@ -1468,6 +1471,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
