@@ -1361,4 +1361,24 @@ table.dataTable th {
   background: #f0f1f3;
 }
 
+/* ===== TEAM SELECTOR WIDTH FIX ===== */
+
+header .team-selector.cc-agent-dropdown {
+  width: auto;              /* 🔥 stop 100% width */
+  flex-shrink: 0;
+}
+
+/* ===== TEAM SELECTOR TEXT COLOR FIX ===== */
+
+header .team-selector .cc-agent-toggle {
+  color: #1f1f1f;            /* 🔥 force visible text */
+}
+
+/* ===== TEAM DROPDOWN VISIBILITY FIX ===== */
+
+header .team-selector .cc-agent-box {
+  min-width: 200px;
+  color: #1f1f1f;
+}
+
 
