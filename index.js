@@ -386,22 +386,24 @@ async function deleteTeam(team) {
 
     // 5️⃣ Update UI + state
     if (nextTeam) {
+      // setCurrentTeam handles dropdown render internally
       await setCurrentTeam(nextTeam);
-    } else if {
+    } else {
       // No teams left → reset app state
       currentTeam = null;
       localStorage.removeItem("kci-last-team");
       document.getElementById("teamToggle").textContent = "Select Team";
-
+    
       Object.values(dataTablesMap).forEach(dt =>
         dt.clear().draw(false)
       );
-
+    
       document.querySelectorAll(
         ".action-bar button, #processBtn"
       ).forEach(btn => btn.disabled = true);
-    } else {
-      await renderTeamDropdown();       // only needed when no active team
+    
+      // Explicitly refresh dropdown (now empty)
+      await renderTeamDropdown();
     }
   };
 }
@@ -3030,6 +3032,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
