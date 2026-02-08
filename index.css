@@ -1312,7 +1312,7 @@ table.dataTable th {
 
 /* Reuse agent toggle style */
 #teamToggle {
-  min-width: 180px;
+  min-width: 100px;
   font-weight: 600;
 }
 
@@ -1381,7 +1381,7 @@ header .team-selector .cc-agent-toggle {
 /* ===== TEAM DROPDOWN VISIBILITY FIX ===== */
 
 header .team-selector .cc-agent-box {
-  min-width: 200px;
+  /* min-width: 200px; */
   color: #1f1f1f;
 }
 
@@ -1401,5 +1401,6 @@ header .team-selector .cc-agent-toggle {
   background: #ffffff;
   color: #1f1f1f;   /* 🔥 ensures readable in light-only mode */
 }
+
 
 
