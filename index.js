@@ -260,7 +260,16 @@ async function renderTeamDropdown() {
     const del = document.createElement("span");
     del.textContent = "✕";
     
-    delWrap.appendChild(sep);
+    const sep = document.createElement("span");
+    sep.className = "team-sep";
+    sep.textContent = "|";
+    
+    const delWrap = document.createElement("span");
+    delWrap.className = "team-del";
+    
+    const del = document.createElement("span");
+    del.textContent = "✕";
+    
     delWrap.appendChild(del);
     
     delWrap.onclick = async (e) => {
@@ -270,7 +279,8 @@ async function renderTeamDropdown() {
     };
     
     row.appendChild(name);
-    row.appendChild(delWrap);
+    row.appendChild(sep);       // ← visual only
+    row.appendChild(delWrap);  // ← clickable till edge
     dropdown.appendChild(row);
   });
 
@@ -2978,6 +2988,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
