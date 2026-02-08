@@ -1412,7 +1412,6 @@ header .team-selector .cc-agent-toggle {
 /* Inline add row: remove padding from input wrapper span */
 .team-add-inline > span:first-child {
   padding: 0;        /* 🔥 remove inherited padding */
-  flex: 0 0 auto;    /* 🔥 prevent flex stretch */
 }
 
 /* ===== DELETE ZONE (| + ✕) ===== */
@@ -1513,5 +1512,6 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
