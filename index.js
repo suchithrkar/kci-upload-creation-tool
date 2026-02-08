@@ -288,8 +288,9 @@ async function addTeamInline() {
 
   const tx = db.transaction(TEAM_STORE, "readwrite");
   tx.objectStore(TEAM_STORE).put({ name });
-
+  
   await renderTeamDropdown();
+  await setCurrentTeam(name);   // 🔥 auto-select new team
 }
 
 async function deleteTeam(team) {
@@ -552,7 +553,7 @@ function createEmptyMatrix() {
   return matrix;
 }
 
-function buildOpenRepairCasesList(allData) {
+function buildOpenRepairCasesListFromTeamData(teamData) {
   const dump =
     allData.find(x => x.sheetName === "Dump")?.rows || [];
 
@@ -800,15 +801,20 @@ document.getElementById('trackingInput').addEventListener('change', e => {
 document.getElementById('processBtn').addEventListener('click', async () => {
   if (!requireTeamSelected()) return;
 
+  document.getElementById("processBtn").disabled = true;
+
   if (kciFile) {
     startProgressContext("Processing KCI Excel...");
   
     // ✅ FULL overwrite ONLY for KCI Excel
     const store = getStore("readwrite");
+    
+    // 🔥 HARD DELETE old KCI sheets from IndexedDB
     ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"].forEach(sheet => {
+      store.delete(getTeamKey(sheet));
       dataTablesMap[sheet]?.clear().draw(false);
     });
-  
+    
     await processExcelFile(kciFile, [
       "Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"
     ]);
@@ -1354,7 +1360,7 @@ async function openOpenRepairCasesReport() {
     return;
   }
 
-  const openCases = buildOpenRepairCasesList(teamData);
+  const openCases = buildOpenRepairCasesListFromTeamData(teamData);
   const openMatrix =
     buildMatrixFromCases(openCases, repair);
 
@@ -2958,6 +2964,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
