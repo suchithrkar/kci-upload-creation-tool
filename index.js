@@ -2361,10 +2361,11 @@ function renderSbdModal(data) {
         <td><input value="${row.country}"></td>
         <td>
           <input
-            type="time"
+            type="text"
             value="${row.time}"
-            step="60"
-            lang="en-GB"
+            placeholder="HH:MM"
+            pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$"
+            title="24-hour format (HH:MM)"
           >
         </td>
         <td><button class="del">✕</button></td>
@@ -3061,6 +3062,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
