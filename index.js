@@ -555,7 +555,7 @@ function createEmptyMatrix() {
 
 function buildOpenRepairCasesListFromTeamData(teamData) {
   const dump =
-    allData.find(x => x.sheetName === "Dump")?.rows || [];
+    teamData.find(x => x.sheetName === "Dump")?.rows || [];
 
   const caseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
   const resIdx =
@@ -1739,7 +1739,9 @@ function diffCalendarDays(from, to = new Date()) {
 }
 
 function getCAGroup(createdOn) {
-  const days = diffCalendarDays(createdOn);
+  const d = new Date(createdOn);
+  if (isNaN(d)) return "NA";
+  const days = diffCalendarDays(d);
 
   if (days <= 3) return "0-3 Days";
   if (days <= 5) return "3-5 Days";
@@ -1800,6 +1802,7 @@ function getFirstOrderDate(caseId, wo, mo, so) {
 }
 
 function calculateSBD(caseRow, firstOrderDate, sbdConfig) {
+  if (!Array.isArray(sbdConfig.periods)) return "NA";
   if (!firstOrderDate || !sbdConfig?.periods) return "NA";
 
   const caseCreated = new Date(caseRow.createdOn);
@@ -2964,6 +2967,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
