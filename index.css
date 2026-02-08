@@ -1475,7 +1475,7 @@ header .team-selector .cc-agent-toggle {
 
 /* Input sizing is EXACT incl padding */
 .team-add-inline input {
-  width: 105.63px;                /* 🔥 exact width */
+  width: 121.63px;                /* 🔥 exact width */
   box-sizing: border-box;         /* 🔥 includes padding */
   padding: 6px 8px;
 
@@ -1483,9 +1483,6 @@ header .team-selector .cc-agent-toggle {
   border-radius: 0;               /* 🔥 no radius */
   font-size: 12px;
   background: transparent;
-}
-
-.team-add-inline input {
   flex: 0 0 auto;   /* 🔒 lock width */
 }
 
@@ -1512,6 +1509,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
 
