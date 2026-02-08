@@ -1224,9 +1224,9 @@ async function openOpenRepairCasesReport() {
   
     document.getElementById("orcSbdSummary").innerHTML = `
       <span class="sbd-label">SBD</span>
-      <span class="sbd-pill sbd-met">Met ${met} • ${pct(met)}%</span>
-      <span class="sbd-pill sbd-not-met">Not Met ${notMet} • ${pct(notMet)}%</span>
-      <span class="sbd-pill sbd-na">NA ${na} • ${pct(na)}%</span>
+      <span class="sbd-pill sbd-met">Met - ${met} • ${pct(met)}%</span>
+      <span class="sbd-pill sbd-not-met">Not Met - ${notMet} • ${pct(notMet)}%</span>
+      <span class="sbd-pill sbd-na">NA - ${na} • ${pct(na)}%</span>
     `;
   
   openModal("openRepairCasesReportModal");
@@ -2740,4 +2740,5 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
