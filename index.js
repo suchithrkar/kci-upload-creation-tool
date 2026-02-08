@@ -4,26 +4,6 @@ let trackingFile = null;
 let workbookCache = null;
 let tablesMap = {};
 const dataTablesMap = {};
-let currentTeam = null;
-const TEAM_STORE = "teams";
-const lastTeam = localStorage.getItem("kci-last-team");
-const CA_BUCKETS = [
-  "0-3 Days",
-  "3-5 Days",
-  "5-10 Days",
-  "10-15 Days",
-  "15-30 Days",
-  "30-60 Days",
-  "60-90 Days",
-  "> 90 Days"
-];
-
-const RESOLUTION_TYPES = [
-  "Onsite Solution",
-  "Parts Shipped",
-  "Offsite Solution"
-];
-
 const TABLE_SCHEMAS = {
   "Dump": [
     "Case ID",
@@ -139,7 +119,7 @@ const TABLE_SCHEMAS = {
     "DNAP"
   ],
 
-  "Closed Cases Data": [
+  "Closed Cases Report": [
     "Case ID",
     "Customer Name",
     "Created On",
@@ -158,12 +138,6 @@ const TABLE_SCHEMAS = {
   ]
 };
 
-function isRepairResolution(resolution) {
-  return RESOLUTION_TYPES
-    .map(r => r.toLowerCase())
-    .includes(normalizeText(resolution));
-}
-
 // Dump sheet header display overrides (UI only) --
 const DUMP_HEADER_DISPLAY_MAP = {
   "Full Name (Primary Contact) (Contact)": "Customer Name",
@@ -173,7 +147,7 @@ const DUMP_HEADER_DISPLAY_MAP = {
 };
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
-const DB_VERSION = 3;
+const DB_VERSION = 2;
 const STORE_NAME = "sheets";
 
 let db = null;
@@ -185,10 +159,7 @@ function openDB() {
     request.onupgradeneeded = function (e) {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains(TEAM_STORE)) {
-        db.createObjectStore(TEAM_STORE, { keyPath: "name" });
+        db.createObjectStore(STORE_NAME, { keyPath: "sheetName" });
       }
     };
 
@@ -203,106 +174,12 @@ function openDB() {
   });
 }
 
-async function loadTeams() {
-  const tx = db.transaction(TEAM_STORE, "readonly");
-  const store = tx.objectStore(TEAM_STORE);
-  return new Promise(res => {
-    const req = store.getAll();
-    req.onsuccess = () => res(req.result || []);
-  });
-}
-
-async function setCurrentTeam(team) {
-  currentTeam = team;
-  localStorage.setItem("kci-last-team", team);
-  document.getElementById("teamToggle").textContent = team + " ▾";
-  await loadDataFromDB();   // 🔥 reload team-scoped data
-}
-
-async function renderTeamDropdown() {
-  const dropdown = document.getElementById("teamDropdown");
-  dropdown.innerHTML = "";
-
-  const teams = await loadTeams();
-
-  teams.forEach(t => {
-    const row = document.createElement("div");
-    row.className = "team-row";
-
-    const name = document.createElement("span");
-    name.textContent = t.name;
-    name.onclick = () => setCurrentTeam(t.name);
-
-    const del = document.createElement("span");
-    del.textContent = "✕";
-    del.onclick = async (e) => {
-      e.stopPropagation();
-      if (!confirm(`Delete team "${t.name}" and ALL its data?`)) return;
-      await deleteTeam(t.name);
-    };
-
-    row.appendChild(name);
-    row.appendChild(del);
-    dropdown.appendChild(row);
-  });
-
-  const add = document.createElement("div");
-  add.className = "team-add";
-  add.textContent = "+ Add Team";
-  add.onclick = addTeamInline;
-
-  dropdown.appendChild(add);
-}
-
-document.getElementById("teamToggle").onclick = (e) => {
-  e.stopPropagation();
-  const dd = document.getElementById("teamDropdown");
-  dd.style.display = dd.style.display === "block" ? "none" : "block";
-};
-
-document.addEventListener("click", () => {
-  document.getElementById("teamDropdown").style.display = "none";
-});
-
-async function addTeamInline() {
-  const name = prompt("Enter new team name");
-  if (!name) return;
-
-  const tx = db.transaction(TEAM_STORE, "readwrite");
-  tx.objectStore(TEAM_STORE).put({ name });
-
-  await renderTeamDropdown();
-}
-
-async function deleteTeam(team) {
-  const tx = db.transaction(STORE_NAME, "readwrite");
-  const store = tx.objectStore(STORE_NAME);
-
-  const req = store.getAllKeys();
-  req.onsuccess = () => {
-    req.result
-      .filter(k => k.startsWith(team + "|"))
-      .forEach(k => store.delete(k));
-  };
-
-  db.transaction(TEAM_STORE, "readwrite")
-    .objectStore(TEAM_STORE)
-    .delete(team);
-
-  currentTeam = null;
-  location.reload();
-}
-
 function openModal(id) {
   document.getElementById(id).style.display = 'flex';
 }
 
 function closeModal(id) {
   document.getElementById(id).style.display = 'none';
-}
-
-function getTeamKey(sheetName) {
-  return `${currentTeam}|${sheetName}`;
 }
 
 function getStore(mode = "readonly") {
@@ -437,7 +314,7 @@ function initEmptyTables() {
     tab.onclick = () => switchSheet(sheetName);
     
     // Right-aligned tabs
-    if (sheetName === "Repair Cases" || sheetName === "Closed Cases Data") {
+    if (sheetName === "Repair Cases" || sheetName === "Closed Cases Report") {
       rightTabsDiv.appendChild(tab);
     } else {
       leftTabsDiv.appendChild(tab);
@@ -469,172 +346,6 @@ function cleanCell(value) {
   str = str.replace(/[\u0000-\u001F\u007F]/g, '');
 
   return str.trim();
-}
-
-function normalizeText(val) {
-  return String(val || "")
-    .trim()
-    .toLowerCase();
-}
-
-function buildDumpCaseMap(dump, caseIdx) {
-  const map = Object.create(null);
-  dump.forEach(r => {
-    const id = r[caseIdx];
-    if (id) map[id] = r;
-  });
-  return map;
-}
-
-function createEmptyMatrix() {
-  const matrix = {};
-
-  RESOLUTION_TYPES.forEach(r => {
-    matrix[r] = {};
-    CA_BUCKETS.forEach(ca => matrix[r][ca] = 0);
-    matrix[r].Total = 0;
-  });
-
-  matrix.Total = {};
-  CA_BUCKETS.forEach(ca => matrix.Total[ca] = 0);
-  matrix.Total.Total = 0;
-
-  return matrix;
-}
-
-function buildOpenRepairCasesList(allData) {
-  const dump =
-    allData.find(x => x.sheetName === "Dump")?.rows || [];
-
-  const caseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
-  const resIdx =
-    TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
-
-  return [
-    ...new Set(
-      dump
-        .filter(r =>
-          ["onsite solution", "parts shipped", "offsite solution"]
-            .includes(normalizeText(r[resIdx]))
-        )
-        .map(r => r[caseIdx])
-    )
-  ];
-}
-
-function buildMatrixFromCases(caseIds, repairRows) {
-  const matrix = createEmptyMatrix();
-
-  const caseIdx = TABLE_SCHEMAS["Repair Cases"].indexOf("Case ID");
-  const resIdx =
-    TABLE_SCHEMAS["Repair Cases"].indexOf("Case Resolution Code");
-  const caIdx =
-    TABLE_SCHEMAS["Repair Cases"].indexOf("CA Group");
-
-  caseIds.forEach(id => {
-    const row = repairRows.find(r => r[caseIdx] === id);
-    if (!row) return; // confirmed skip
-
-    const res = row[resIdx];
-    const ca = row[caIdx];
-
-    if (!matrix[res] || !(ca in matrix[res])) return;
-
-    matrix[res][ca]++;
-    matrix[res].Total++;
-    matrix.Total[ca]++;
-    matrix.Total.Total++;
-  });
-
-  return matrix;
-}
-
-function buildReadyForClosureList(caseIds, repairRows) {
-  const caseIdx = TABLE_SCHEMAS["Repair Cases"].indexOf("Case ID");
-  const resIdx =
-    TABLE_SCHEMAS["Repair Cases"].indexOf("Case Resolution Code");
-
-  const onsiteIdx =
-    TABLE_SCHEMAS["Repair Cases"].indexOf("Onsite RFC");
-  const csrIdx =
-    TABLE_SCHEMAS["Repair Cases"].indexOf("CSR RFC");
-  const benchIdx =
-    TABLE_SCHEMAS["Repair Cases"].indexOf("Bench RFC");
-
-  return caseIds.filter(id => {
-    const row = repairRows.find(r => r[caseIdx] === id);
-    if (!row) return false;
-
-    const res = row[resIdx];
-    const onsite = normalizeText(row[onsiteIdx]);
-    const csr = normalizeText(row[csrIdx]);
-    const bench = normalizeText(row[benchIdx]);
-
-    if (
-      res === "Onsite Solution" &&
-      ["closed - cancelled", "closed - posted", "open - completed"]
-        .includes(onsite)
-    ) return true;
-
-    if (
-      res === "Parts Shipped" &&
-      ["cancelled", "pod", "closed"].includes(csr)
-    ) return true;
-
-    if (
-      res === "Offsite Solution" &&
-      ["delivered", "order cancelled, not to be reopened"]
-        .includes(bench)
-    ) return true;
-
-    return false;
-  });
-}
-
-function renderOrcTable(containerId, matrix) {
-  let html = `<table class="orc-table"><thead><tr><th></th>`;
-
-  CA_BUCKETS.forEach(ca => html += `<th>${ca}</th>`);
-  html += `<th>Total</th></tr></thead><tbody>`;
-
-  RESOLUTION_TYPES.forEach(r => {
-    html += `<tr><td class="row-header">${r}</td>`;
-    CA_BUCKETS.forEach(ca => html += `<td>${matrix[r][ca]}</td>`);
-    html += `<td>${matrix[r].Total}</td></tr>`;
-  });
-
-  html += `<tr class="total-row"><td class="row-header">Total</td>`;
-  CA_BUCKETS.forEach(ca => html += `<td>${matrix.Total[ca]}</td>`);
-  html += `<td>${matrix.Total.Total}</td></tr></tbody></table>`;
-
-  document.getElementById(containerId).innerHTML = html;
-}
-
-function toYYYYMM(dateStr) {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function toDateKey(dateStr) {
-  const d = new Date(dateStr);
-  return d.toISOString().split("T")[0];
-}
-
-function formatDayDisplay(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "long"
-  });
-}
-
-function formatMonthDisplay(yyyyMM) {
-  const [y, m] = yyyyMM.split("-");
-  const d = new Date(y, m - 1, 1);
-  return d.toLocaleDateString("en-GB", {
-    month: "short",
-    year: "numeric"
-  }).replace(" ", " - ");
 }
 
 function excelDateToJSDate(serial) {
@@ -756,6 +467,11 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     const store = getStore("readwrite");
     ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"].forEach(sheet => {
       dataTablesMap[sheet]?.clear().draw(false);
+      store.put({
+        sheetName: sheet,
+        rows: [],
+        lastUpdated: new Date().toISOString()
+      });
     });
   
     await processExcelFile(kciFile, [
@@ -963,8 +679,6 @@ function buildSheetTables(workbook) {
       dataTable.draw(false);
 
       getStore("readwrite").put({
-        id: getTeamKey(sheetName),
-        team: currentTeam,
         sheetName,
         rows: rows.map(r => normalizeRowToSchema(r, sheetName)),
         lastUpdated: new Date().toISOString()
@@ -1048,8 +762,6 @@ function processCsvFile(file, targetSheetName) {
       // Save to IndexedDB
       const store = getStore("readwrite");
       store.put({
-        id: getTeamKey(targetSheetName),
-        team: currentTeam,
         sheetName: targetSheetName,
         rows: dataRows,
         lastUpdated: new Date().toISOString()
@@ -1104,7 +816,6 @@ async function processGNProCSOFile(file) {
 
   const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
   const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
-  const dumpByCaseId = buildDumpCaseMap(dump, dumpCaseIdx);
 
   const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
   const soDateIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
@@ -1115,30 +826,13 @@ async function processGNProCSOFile(file) {
   const oldTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
 
   // 1️⃣ Offsite cases
-  // 1️⃣ Identify repair cases from Dump (case IDs only)
-  const repairCaseIds = [
+  const offsiteCases = [
     ...new Set(
       dump
-        .filter(r => isRepairResolution(r[dumpResIdx]))
+        .filter(r => normalizeText(r[dumpResIdx]) === "offsite solution")
         .map(r => r[dumpCaseIdx])
     )
   ];
-  
-  // 2️⃣ Recalculate resolution per case
-  const offsiteCases = repairCaseIds.filter(caseId => {
-    const dumpRow = dumpByCaseId[caseId];
-    if (!dumpRow) return false;
-  
-    const derivedResolution = getCalculatedResolution(
-      caseId,
-      [],            // WO not needed for GNPro
-      so,
-      [],            // MO not needed
-      dumpRow[dumpResIdx]
-    );
-  
-    return derivedResolution === "Offsite Solution";
-  });
 
   const finalRows = [];
 
@@ -1211,8 +905,6 @@ async function processGNProCSOFile(file) {
   // Save to IndexedDB
   const writeStore = getStore("readwrite");
   writeStore.put({
-    id: getTeamKey("CSO Status"),
-    team: currentTeam,
     sheetName: "CSO Status",
     rows: finalRows,
     lastUpdated: new Date().toISOString()
@@ -1220,418 +912,25 @@ async function processGNProCSOFile(file) {
 }
 
 function loadDataFromDB() {
-  if (!currentTeam) return;
-
   const store = getStore("readonly");
-  const req = store.getAll();
+  const request = store.getAll();
 
-  req.onsuccess = () => {
-    req.result
-      .filter(r => r.team === currentTeam)
-      .forEach(record => {
-        const dt = dataTablesMap[record.sheetName];
-        if (!dt) return;
+  request.onsuccess = function () {
+    const records = request.result;
 
-        dt.clear();
-        record.rows.forEach(row =>
-          dt.row.add(["", ...normalizeRowToSchema(row, record.sheetName)])
-        );
-        dt.draw(false);
+    records.forEach(record => {
+      const sheetName = record.sheetName;
+      const dt = dataTablesMap[sheetName];
+      if (!dt) return;
+
+      dt.clear();
+      record.rows.forEach(row => {
+        const normalized = normalizeRowToSchema(row, sheetName);
+        dt.row.add(["", ...normalized]); // S.No placeholder
       });
-  };
-}
-
-document.getElementById("ccDrillTotalBtn").onclick = () => {
-  const store = getStore("readonly");
-  store.get(getTeamKey("Closed Cases Data")).onsuccess = e => {
-    buildDrilldownTotal(e.target.result.rows || []);
-  };
-};
-
-async function openClosedCasesReport() {
-  const store = getStore("readonly");
-  const all = await new Promise(r => {
-    const q = store.getAll();
-    q.onsuccess = () => r(q.result);
-  });
-
-  const closed =
-    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
-
-  if (!closed.length) {
-    alert("No Closed Cases Data available.");
-    return;
-  }
-
-  buildClosedCasesMonthFilter(closed);
-  await buildClosedCasesAgentFilter(closed);
-  buildClosedCasesSummary(closed);
-  
-  // 🔥 DEFAULT: show monthly total drilldown
-  buildDrilldownTotal(closed);
-  
-  openModal("closedCasesReportModal");
-}
-
-async function openOpenRepairCasesReport() {
-  const store = getStore("readonly");
-  const all = await new Promise(r => {
-    const q = store.getAll();
-    q.onsuccess = () => r(q.result);
-  });
-
-  const repair =
-    all.find(x => x.sheetName === "Repair Cases")?.rows || [];
-
-  if (!repair.length) {
-    alert("Repair Cases data not available.");
-    return;
-  }
-
-  const openCases = buildOpenRepairCasesList(all);
-  const openMatrix =
-    buildMatrixFromCases(openCases, repair);
-
-  const readyCases =
-    buildReadyForClosureList(openCases, repair);
-  const readyMatrix =
-    buildMatrixFromCases(readyCases, repair);
-
-  renderOrcTable("openRepairCasesTable", openMatrix);
-  renderOrcTable("readyForClosureTable", readyMatrix);
-
-  // ===== SBD SUMMARY CALCULATION =====
-  const sbdIdx = TABLE_SCHEMAS["Repair Cases"].indexOf("SBD");
-  
-  let met = 0;
-  let notMet = 0;
-  let na = 0;
-  
-  openCases.forEach(caseId => {
-    const row = repair.find(r => r[0] === caseId);
-    if (!row) return;
-  
-    const sbd = normalizeText(row[sbdIdx]);
-  
-    if (sbd === "met") met++;
-    else if (sbd === "not met") notMet++;
-    else na++;
-  });
-  
-  const total = met + notMet + na;
-  
-  const pct = (v) =>
-    total ? Math.round((v / total) * 100) : 0;
-  
-    document.getElementById("orcSbdSummary").innerHTML = `
-      <span class="sbd-label">SBD</span>
-      <span class="sbd-pill sbd-met">Met - ${met} • ${pct(met)}%</span>
-      <span class="sbd-pill sbd-not-met">Not Met - ${notMet} • ${pct(notMet)}%</span>
-      <span class="sbd-pill sbd-na">NA - ${na} • ${pct(na)}%</span>
-    `;
-  
-  openModal("openRepairCasesReportModal");
-}
-
-function buildClosedCasesMonthFilter(rows) {
-  const select = document.getElementById("ccMonthSelect");
-  select.innerHTML = "";
-
-  const months = [...new Set(
-    rows.map(r => toYYYYMM(r[6]))   // Case Closed Date
-  )].sort().reverse().slice(0, 7);
-
-  months.forEach(m => {
-    const opt = document.createElement("option");
-    opt.value = m;
-    opt.textContent = formatMonthDisplay(m);
-    select.appendChild(opt);
-  });
-
-  // Ensure latest month is selected by default
-  if (select.options.length) {
-    select.selectedIndex = 0;
-  }
-
-  select.onchange = () => buildClosedCasesSummary(rows);
-}
-
-async function saveSelectedKciAgents(agents) {
-  getStore("readwrite").put({
-    id: getTeamKey("KCI_AGENT_PREFS"),
-    team: currentTeam,
-    sheetName: "KCI_AGENT_PREFS",
-    agents
-  });
-}
-
-async function loadSelectedKciAgents() {
-  const req = getStore("readonly").get(getTeamKey("KCI_AGENT_PREFS"));
-  return new Promise(res => {
-    req.onsuccess = () => res(req.result?.agents || []);
-  });
-}
-
-async function buildClosedCasesAgentFilter(rows) {
-  const box = document.getElementById("ccAgentBox");
-  const selectedDiv = document.getElementById("ccAgentSelected");
-
-  box.innerHTML = "";
-  selectedDiv.innerHTML = "";
-
-  // 🔥 Load previously saved KCI agents (if any)
-  const savedAgents = await loadSelectedKciAgents();
-
-  const agents = [...new Set(
-    rows.map(r => r[7]).filter(v => v && v !== "CRM Auto Closed")
-  )].sort();
-
-  agents.forEach(name => {
-    const label = document.createElement("label");
-
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.value = name;
-    cb.checked = savedAgents.includes(name);
-
-    cb.onchange = async () => {
-      updateSelectedAgents();
-      buildClosedCasesSummary(rows);
-    
-      const selected =
-        [...box.querySelectorAll("input:checked")]
-          .map(i => i.value);
-    
-      await saveSelectedKciAgents(selected);
-    };
-
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(name));
-    box.appendChild(label);
-  });
-
-  function updateSelectedAgents() {
-    const selected = [...box.querySelectorAll("input:checked")]
-      .map(i => i.value);
-
-    selectedDiv.innerHTML = "";
-    
-    selected.forEach(name => {
-      const div = document.createElement("div");
-      div.textContent = `– ${name}`;
-      div.className = "cc-agent-name";
-      selectedDiv.appendChild(div);
+      dt.draw(false);
     });
-  }
-
-  updateSelectedAgents();
-
-  // ---------- DROPDOWN OPEN / CLOSE LOGIC ----------
-  const toggle = document.getElementById("ccAgentToggle");
-  
-  // Toggle dropdown on click
-  toggle.onclick = (e) => {
-    e.stopPropagation(); // prevent document click from firing
-    box.style.display =
-      box.style.display === "block" ? "none" : "block";
   };
-  
-  // Prevent clicks inside dropdown from closing it
-  box.onclick = (e) => {
-    e.stopPropagation();
-  };
-  
-  // Close dropdown when clicking outside
-  document.addEventListener("click", () => {
-    box.style.display = "none";
-  });
-}
-
-function buildClosedCasesSummary(rows) {
-  const month = document.getElementById("ccMonthSelect").value;
-  const agentSelect = document.getElementById("ccAgentSelect");
-
-  const selectedAgents =
-    [...document.querySelectorAll("#ccAgentBox input:checked")]
-      .map(cb => cb.value);
-
-  const filtered = rows.filter(r =>
-    toYYYYMM(r[6]) === month
-  );
-
-  const byDate = {};
-
-  filtered.forEach(r => {
-    const dateKey = toDateKey(r[6]);
-    const closedBy = r[7];
-
-    if (!byDate[dateKey]) {
-      byDate[dateKey] = {
-        total: 0,
-        kci: 0,
-        crm: 0
-      };
-    }
-
-    byDate[dateKey].total++;
-
-    if (closedBy === "CRM Auto Closed") {
-      byDate[dateKey].crm++;
-    } else if (selectedAgents.includes(closedBy)) {
-      byDate[dateKey].kci++;
-    }
-  });
-
-  const table = $("#ccSummaryTable").DataTable();
-  table.clear();
-
-  Object.keys(byDate).sort().forEach(date => {
-    const d = byDate[date];
-    const agentRC = d.total - d.kci - d.crm;
-  
-    const day = new Date(date).getDay(); // 0 = Sun, 6 = Sat
-    const isWeekend = day === 0 || day === 6;
-  
-    const rowNode = table.row.add([
-      formatDayDisplay(date),
-      d.total,
-      `<div class="cc-kci" data-date="${date}">${d.kci}</div>`,
-      d.crm,
-      agentRC
-    ]).node();
-  
-    if (isWeekend) {
-      rowNode.classList.add("cc-weekend");
-    }
-  });
-
-  let totalAll = 0;
-  let totalKci = 0;
-  let totalCrm = 0;
-  let totalRc = 0;
-  
-  Object.values(byDate).forEach(d => {
-    totalAll += d.total;
-    totalKci += d.kci;
-    totalCrm += d.crm;
-    totalRc += (d.total - d.kci - d.crm);
-  });
-  
-  table.row.add([
-    "<strong>Total</strong>",
-    `<strong>${totalAll}</strong>`,
-    `<strong>${totalKci}</strong>`,
-    `<strong>${totalCrm}</strong>`,
-    `<strong>${totalRc}</strong>`
-  ]);
-
-  table.draw(false);
-
-  attachDrilldownClicks(filtered);
-
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yKey = toDateKey(yesterday);
-  
-  if (byDate[yKey]) {
-    buildDrilldown(filtered, yKey);
-  }
-
-}
-
-function attachDrilldownClicks(rows) {
-  document.querySelectorAll(".cc-kci").forEach(el => {
-    el.onclick = () => {
-      const date = el.dataset.date;
-      if (!date) return;   // 🔥 ignore Total row
-      buildDrilldown(rows, date);
-    };
-  });
-}
-
-function buildDrilldown(rows, date) {
-  const agentSelect = document.getElementById("ccAgentSelect");
-  const selectedAgents =
-    [...document.querySelectorAll("#ccAgentBox input:checked")]
-      .map(cb => cb.value);
-
-  const map = {};
-
-const selectedMonth =
-  document.getElementById("ccMonthSelect").value;
-
-  rows.forEach(r => {
-    if (
-      toYYYYMM(r[6]) === selectedMonth &&
-      toDateKey(r[6]) === date &&
-      selectedAgents.includes(r[7])
-    ) {
-      map[r[7]] = (map[r[7]] || 0) + 1;
-    }
-  });
-
-  const table = $("#ccDrillTable").DataTable();
-  table.clear();
-
-  let total = 0;
-  
-  selectedAgents.forEach(agent => {
-    const count = map[agent] || 0;
-    total += count;
-    table.row.add([agent, count]);
-  });
-  
-  // 🔥 Grand Total row
-  table.row.add([
-    "<strong>Total</strong>",
-    `<strong>${total}</strong>`
-  ]);
-
-  table.draw(false);
-
-  document.getElementById("ccDrillTitle").textContent =
-    `KCI Closures – ${formatDayDisplay(date)}`;
-}
-
-function buildDrilldownTotal(rows) {
-  const selectedMonth =
-    document.getElementById("ccMonthSelect").value;
-
-  const selectedAgents =
-    [...document.querySelectorAll("#ccAgentBox input:checked")]
-      .map(cb => cb.value);
-
-  const map = {};
-
-  rows.forEach(r => {
-    if (
-      toYYYYMM(r[6]) === selectedMonth &&
-      selectedAgents.includes(r[7])
-    ) {
-      map[r[7]] = (map[r[7]] || 0) + 1;
-    }
-  });
-
-  const table = $("#ccDrillTable").DataTable();
-  table.clear();
-
-  let total = 0;
-
-  selectedAgents.forEach(agent => {
-    const count = map[agent] || 0;
-    total += count;
-    table.row.add([agent, count]);
-  });
-
-  table.row.add([
-    "<strong>Total</strong>",
-    `<strong>${total}</strong>`
-  ]);
-
-  table.draw(false);
-
-  document.getElementById("ccDrillTitle").textContent =
-    "KCI Closures – Monthly Total";
 }
 
 function switchSheet(sheetName) {
@@ -1653,6 +952,10 @@ function switchSheet(sheetName) {
       dataTable.columns.adjust().draw(false);
     }
   });
+}
+
+function normalizeText(val) {
+  return String(val || "").trim().toLowerCase();
 }
 
 function toDateOnly(d) {
@@ -1761,52 +1064,6 @@ function calculateSBD(caseRow, firstOrderDate, sbdConfig) {
   return firstOrderDate <= cutOffDate ? "Met" : "Not Met";
 }
 
-function getCalculatedResolution(caseId, wo, so, mo, dumpResolution) {
-  let latest = null;
-
-  // WO
-  wo.forEach(r => {
-    if (r[0] === caseId && r[6]) {
-      const d = new Date(r[6]);
-      if (!latest || d > latest.date) {
-        latest = { type: "WO", date: d };
-      }
-    }
-  });
-
-  // SO
-  so.forEach(r => {
-    if (r[0] === caseId && r[2]) {
-      const d = new Date(r[2]);
-      if (!latest || d > latest.date) {
-        latest = { type: "SO", date: d };
-      }
-    }
-  });
-
-  // MO
-  mo.forEach(r => {
-    if (r[1] === caseId && r[2]) {
-      const d = new Date(r[2]);
-      if (!latest || d > latest.date) {
-        latest = { type: "MO", date: d };
-      }
-    }
-  });
-
-  // ✅ Decision
-  if (!latest) {
-    // fallback → dump
-    return dumpResolution;
-  }
-
-  if (latest.type === "WO") return "Onsite Solution";
-  if (latest.type === "SO") return "Offsite Solution";
-  if (latest.type === "MO") return "Parts Shipped";
-
-  return dumpResolution;
-}
-
 async function buildCopySOOrders() {
   const store = getStore("readonly");
   const allData = await new Promise(res => {
@@ -1820,7 +1077,6 @@ async function buildCopySOOrders() {
 
   const dumpIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
   const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
-  const dumpByCaseId = buildDumpCaseMap(dump, dumpCaseIdx);
 
   const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
   const soDateIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
@@ -1829,30 +1085,14 @@ async function buildCopySOOrders() {
   const csoCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
   const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
 
-  // Step 1: Identify repair cases from Dump
-  const repairCaseIds = [
+  // Step 1: Offsite cases
+  const offsiteCases = [
     ...new Set(
       dump
-        .filter(r => isRepairResolution(r[dumpIdx]))
+        .filter(r => normalizeText(r[dumpIdx]) === "offsite solution")
         .map(r => r[dumpCaseIdx])
     )
   ];
-  
-  // Step 2: Recalculate resolution
-  const offsiteCases = repairCaseIds.filter(caseId => {
-    const dumpRow = dumpByCaseId[caseId];
-    if (!dumpRow) return false;
-  
-    const derivedResolution = getCalculatedResolution(
-      caseId,
-      [],       // WO not required here
-      so,
-      [],       // MO not required
-      dumpRow[dumpIdx]
-    );
-  
-    return derivedResolution === "Offsite Solution";
-  });
 
   const result = [];
 
@@ -1902,7 +1142,6 @@ async function buildCopyTrackingURLs() {
 
   const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
   const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
-  const dumpByCaseId = buildDumpCaseMap(dump, dumpCaseIdx);
 
   const moOrderIdx = TABLE_SCHEMAS["MO"].indexOf("Order Number");
   const moCaseIdx = TABLE_SCHEMAS["MO"].indexOf("Case ID");
@@ -1920,30 +1159,14 @@ async function buildCopyTrackingURLs() {
   const delCaseIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
   const delStatusIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
 
-  // Stage 1: Identify repair cases from Dump
-  const repairCaseIds = [
+  // ---- Stage 1: MO based tracking (primary) ----
+  const partsShippedCases = [
     ...new Set(
       dump
-        .filter(r => isRepairResolution(r[dumpResIdx]))
+        .filter(r => normalizeText(r[dumpResIdx]) === "parts shipped")
         .map(r => r[dumpCaseIdx])
     )
   ];
-  
-  // Stage 2: Recalculate resolution
-  const partsShippedCases = repairCaseIds.filter(caseId => {
-    const dumpRow = dumpByCaseId[caseId];
-    if (!dumpRow) return false;
-  
-    const derivedResolution = getCalculatedResolution(
-      caseId,
-      [],       // WO not needed
-      [],       // SO not needed
-      mo,
-      dumpRow[dumpResIdx]
-    );
-  
-    return derivedResolution === "Parts Shipped";
-  });
 
   const moTrackingMap = new Map();
 
@@ -2131,8 +1354,6 @@ async function processTrackingResultsFile(file) {
   // 8️⃣ Save to IndexedDB
   const writeStore = getStore("readwrite");
   writeStore.put({
-    id: getTeamKey("Delivery Details"),
-    team: currentTeam,
     sheetName: "Delivery Details",
     rows: finalRows,
     lastUpdated: new Date().toISOString()
@@ -2238,11 +1459,8 @@ async function saveSbdData() {
 
   const store = getStore("readwrite");
   store.put({
-    id: getTeamKey("SBD Cut Off Times"),
-    team: currentTeam,
     sheetName: "SBD Cut Off Times",
-    periods,
-    lastUpdated: new Date().toISOString()
+    periods
   });
 
   document.getElementById("sbdModal").style.display = "none";
@@ -2250,7 +1468,7 @@ async function saveSbdData() {
 
 document.getElementById("sbdBtn").onclick = async () => {
   const store = getStore("readonly");
-  const req = store.get(getTeamKey("SBD Cut Off Times"));
+  const req = store.get("SBD Cut Off Times");
 
   req.onsuccess = () => {
     const data = req.result || createEmptySbdData();
@@ -2273,7 +1491,7 @@ function adjustMappingModalWidth(containerId, modalId) {
   const blockWidth = 320;
   const gap = 12;
 
-  const width = count * blockWidth + (count - 1) * gap + 32;
+  const width = count * blockWidth + (count - 1) * gap;
   modal.style.width = width + "px";
 }
 
@@ -2389,13 +1607,7 @@ document.getElementById("saveTlBtn").onclick = () => {
     data.push({ name, agents });
   });
 
-  getStore("readwrite").put({
-    id: getTeamKey("TL_MAP"),
-    team: currentTeam,
-    sheetName: "TL_MAP",
-    data,
-    lastUpdated: new Date().toISOString()
-  });
+  getStore("readwrite").put({ sheetName: "TL_MAP", data });
   closeModal("tlModal");
 };
 
@@ -2414,18 +1626,12 @@ document.getElementById("saveMarketBtn").onclick = () => {
     data.push({ name, countries });
   });
 
-  getStore("readwrite").put({
-    id: getTeamKey("MARKET_MAP"),
-    team: currentTeam,
-    sheetName: "MARKET_MAP",
-    data,
-    lastUpdated: new Date().toISOString()
-  });
+  getStore("readwrite").put({ sheetName: "MARKET_MAP", data });
   closeModal("marketModal");
 };
 
 document.getElementById("tlBtn").onclick = async () => {
-  const req = getStore().get(getTeamKey("TL_MAP"));
+  const req = getStore().get("TL_MAP");
   req.onsuccess = () => {
     renderTLModal(req.result?.data || []);
     openModal("tlModal");
@@ -2433,7 +1639,7 @@ document.getElementById("tlBtn").onclick = async () => {
 };
 
 document.getElementById("marketBtn").onclick = async () => {
-  const req = getStore().get(getTeamKey("MARKET_MAP"));
+  const req = getStore().get("MARKET_MAP");
   req.onsuccess = () => {
     renderMarketModal(req.result?.data || []);
     openModal("marketModal");
@@ -2451,12 +1657,6 @@ document.getElementById("addMarketBtn").onclick = () => {
   container.querySelector(".placeholder")?.remove();
   addMarketBlock();
 };
-
-document.getElementById("closedCasesReportBtn")
-  .addEventListener("click", openClosedCasesReport);
-
-document.getElementById("openRepairCasesReportBtn")
-  .addEventListener("click", openOpenRepairCasesReport);
 
 document.getElementById("copySoBtn").addEventListener("click", async () => {
   const output = await buildCopySOOrders();
@@ -2513,23 +1713,6 @@ async function buildRepairCases() {
     q.onsuccess = () => r(q.result);
   });
 
-  // 🔥 Load Closed Cases Data to exclude closed cases from Repair
-  const closedData =
-    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
-  
-  const closedIds = new Set(
-    closedData.map(r => r[0])   // Case ID
-  );
-
-  const existingRepair =
-    all.find(x => x.sheetName === "Repair Cases")?.rows || [];
-  
-  const repairMap = new Map();
-  // Key = Case ID, Value = row array
-  existingRepair.forEach(r => {
-    repairMap.set(r[0], r);
-  });
-
   const dump = all.find(x => x.sheetName === "Dump")?.rows || [];
   const wo = all.find(x => x.sheetName === "WO")?.rows || [];
   const mo = all.find(x => x.sheetName === "MO")?.rows || [];
@@ -2544,19 +1727,14 @@ async function buildRepairCases() {
 
   const validCases = dump.filter(r =>
     ["parts shipped", "onsite solution", "offsite solution"]
-      .includes(normalizeText(r[8])) &&
-    !closedIds.has(r[0])        // 🚫 exclude already-closed cases
+      .includes(normalizeText(r[8]))
   );
+
+  const rows = [];
 
   validCases.forEach(d => {
     const caseId = d[0];
-    const calculatedResolution = getCalculatedResolution(
-      caseId,
-      wo,
-      so,
-      mo,
-      d[8]   // fallback only if no orders exist
-    );
+    const resolution = normalizeText(d[8]);
 
     const firstOrder = getFirstOrderDate(caseId, wo, mo, so);
 
@@ -2571,23 +1749,23 @@ async function buildRepairCases() {
       )?.name || "";
 
     const onsiteRFC =
-      calculatedResolution === "Onsite Solution"
+      resolution === "onsite solution"
         ? (wo.filter(w => w[0] === caseId)
             .sort((a, b) => new Date(b[6]) - new Date(a[6]))[0]?.[5] || "")
         : "Not Found";
 
     const csrRFC =
-      calculatedResolution === "Parts Shipped"
+      resolution === "parts shipped"
         ? (getLatestMO(caseId, mo)?.[3] || "")
         : "Not Found";
 
     const benchRFC =
-      calculatedResolution === "Offsite Solution"
+      resolution === "offsite solution"
         ? (cso.find(c => c[0] === caseId)?.[2] || "")
         : "Not Found";
 
     const dnap =
-      calculatedResolution === "Offsite Solution" &&
+      resolution === "offsite solution" &&
       normalizeText(cso.find(c => c[0] === caseId)?.[4])
         .includes("product returned unrepaired to customer")
         ? "True"
@@ -2596,7 +1774,7 @@ async function buildRepairCases() {
     let partNumber = "";
     let partName = "";
     
-    if (calculatedResolution === "Parts Shipped") {
+    if (resolution === "parts shipped") {
       const latestMO = getLatestMO(caseId, mo);
     
       if (latestMO) {
@@ -2620,9 +1798,9 @@ async function buildRepairCases() {
       }
     }
 
-    const newRow = [
+    rows.push([
       caseId,
-      d[1], d[2], d[3], d[6], calculatedResolution, d[9], d[15],
+      d[1], d[2], d[3], d[6], d[8], d[9], d[15],
       getCAGroup(d[2]),
       tl,
       calculateSBD({ createdOn: d[2], country: d[6] }, firstOrder, sbdConfig),
@@ -2644,29 +1822,19 @@ async function buildRepairCases() {
       d[17],
       d[10],
       dnap
-    ];
-    
-    // 🔥 UPSERT: overwrite if exists, else add
-    repairMap.set(caseId, newRow);
+    ]);
   });
 
-  const finalRows = [...repairMap.values()];
-  
-  // Update UI
   const dt = dataTablesMap["Repair Cases"];
   dt.clear();
-  finalRows.forEach(r => dt.row.add(["", ...r]));
+  rows.forEach(r => dt.row.add(["", ...r]));
   dt.draw(false);
-  
-  // Save to DB
+
   getStore("readwrite").put({
-    id: getTeamKey("Repair Cases"),
-    team: currentTeam,
     sheetName: "Repair Cases",
-    rows: finalRows,
+    rows,
     lastUpdated: new Date().toISOString()
   });
-  
 }
 
 async function buildClosedCasesReport() {
@@ -2676,23 +1844,17 @@ async function buildClosedCasesReport() {
     q.onsuccess = () => r(q.result);
   });
 
-  const existingClosed =
-    all.find(x => x.sheetName === "Closed Cases Data")?.rows || [];
-  
-  const closedMap = new Map();
-  // Key = Case ID, Value = row
-  existingClosed.forEach(r => {
-    closedMap.set(r[0], r);
-  });
-
-  const newlyClosedIds = new Set();
-
   const closed = all.find(x => x.sheetName === "Closed Cases")?.rows || [];
   const repair = all.find(x => x.sheetName === "Repair Cases")?.rows || [];
+
+  const now = new Date();
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 6, 1);
 
   const rows = [];
 
   closed.forEach(c => {
+    const closedDate = new Date(c[4]);
+    if (closedDate < cutoff) return;
 
     const repairRow = repair.find(r => r[0] === c[0]);
 
@@ -2705,70 +1867,36 @@ async function buildClosedCasesReport() {
        "SYSTEM"].includes(closedBy)
     ) closedBy = c[8];
 
-    // 🔥 Skip if already exists (immutable)
-    if (closedMap.has(c[0])) return;
-    
-    closedMap.set(c[0], [
+    rows.push([
       c[0],
       repairRow?.[1] || "",
-      c[1],                 // Created On
-      c[6],                 // Created By
-      c[2],                 // Modified By
-      c[3],                 // Modified On
-      c[4],                 // Case Closed Date
+      c[1], c[6], c[2], c[3], c[4],
       closedBy,
-      c[9],                 // Country
-      c[5],                 // Resolution Code
-      c[8],                 // Case Owner
-      c[10],                // OTC Code
-      repairRow?.[9] || "", // TL
-      repairRow?.[10] || "",// SBD
-      repairRow?.[14] || "" // Market
+      c[9], c[5], c[8], c[10],
+      repairRow?.[9] || "",
+      repairRow?.[10] || "",
+      repairRow?.[14] || ""
     ]);
-    
-    newlyClosedIds.add(c[0]);
   });
 
-  // ===== Retention cleanup: keep only last 6 months =====
-  const now = new Date();
-  const cutoff = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-  
-  closedMap.forEach((row, caseId) => {
-    const closedDate = new Date(row[6]); // Case Closed Date
-    if (closedDate < cutoff) {
-      closedMap.delete(caseId);
-    }
-  });
-
-  const finalClosedRows = [...closedMap.values()];
-
-  // Update UI
-  const dt = dataTablesMap["Closed Cases Data"];
+  const dt = dataTablesMap["Closed Cases Report"];
   dt.clear();
-  finalClosedRows.forEach(r => dt.row.add(["", ...r]));
+  rows.forEach(r => dt.row.add(["", ...r]));
   dt.draw(false);
-  
-  // Save to DB
+
   const write = getStore("readwrite");
   write.put({
-    id: getTeamKey("Closed Cases Data"),
-    team: currentTeam,
-    sheetName: "Closed Cases Data",
-    rows: finalClosedRows,
+    sheetName: "Closed Cases Report",
+    rows,
     lastUpdated: new Date().toISOString()
   });
 
+  // Remove closed cases from Repair Cases
   const remaining = repair.filter(
-    r => !newlyClosedIds.has(r[0])
+    r => !rows.some(c => c[0] === r[0])
   );
-  
-  write.put({
-    id: getTeamKey("Repair Cases"),
-    team: currentTeam,
-    sheetName: "Repair Cases",
-    rows: remaining,
-    lastUpdated: new Date().toISOString()
-  });
+
+  write.put({ sheetName: "Repair Cases", rows: remaining });
 }
 
 document.getElementById("processRepairBtn")
@@ -2809,36 +1937,11 @@ document.getElementById("processRepairBtn")
 
 document.addEventListener('DOMContentLoaded', async () => {
   await openDB();
-  await renderTeamDropdown();
-  
-  if (lastTeam) {
-    setCurrentTeam(lastTeam);
-  } else {
-    document.getElementById("teamToggle").textContent = "Select Team ▾";
-  }
   initEmptyTables();
 
   // IMPORTANT: wait for DataTables to fully initialize
   requestAnimationFrame(() => {
     loadDataFromDB();
-    $('#ccSummaryTable').DataTable({
-      paging: false,
-      searching: false,
-      info: false,
-      ordering: false,
-      dom: 't',
-    
-      // 🔥 THIS LINE STOPS odd/even CLASSES COMPLETELY
-      stripeClasses: []
-    });
-    
-    $('#ccDrillTable').DataTable({
-      paging: false,
-      searching: false,
-      info: false,
-      ordering: false,
-      dom: 't'
-    });
   });
 });
 
@@ -2873,6 +1976,8 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
+
 
 
 
