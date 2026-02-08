@@ -387,7 +387,7 @@ async function deleteTeam(team) {
     // 5️⃣ Update UI + state
     if (nextTeam) {
       await setCurrentTeam(nextTeam);
-    } else {
+    } else if {
       // No teams left → reset app state
       currentTeam = null;
       localStorage.removeItem("kci-last-team");
@@ -3030,6 +3030,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
