@@ -250,6 +250,10 @@ async function setCurrentTeam(team) {
   await loadDataFromDB();
 
   updateProcessButtonState();
+  // ✅ ENABLE action bar buttons once team is selected
+  document.querySelectorAll(".action-bar button").forEach(btn => {
+    btn.disabled = false;
+  });
 }
 
 async function renderTeamDropdown() {
@@ -3050,6 +3054,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
