@@ -294,6 +294,10 @@ async function renderTeamDropdown() {
     input.type = "text";
     input.placeholder = "New team name";
     input.autofocus = true;
+
+    input.addEventListener("click", (e) => {
+      e.stopPropagation();              // 🔥 allow typing
+    });
   
     const confirm = document.createElement("div");
     confirm.className = "team-confirm";
@@ -327,7 +331,8 @@ async function renderTeamDropdown() {
   const add = document.createElement("div");
   add.className = "team-add";
   add.textContent = "+ Add Team";
-  add.onclick = () => {
+  add.onclick = (e) => {
+    e.stopPropagation();              // 🔥 CRITICAL
     isAddingTeamInline = true;
     renderTeamDropdown();
   };
@@ -341,6 +346,11 @@ document.getElementById("teamToggle").onclick = (e) => {
   box.style.display =
     box.style.display === "block" ? "none" : "block";
 };
+
+// 🔥 Prevent clicks inside team dropdown from closing it
+document.getElementById("teamDropdown").addEventListener("click", (e) => {
+  e.stopPropagation();
+});
 
 document.addEventListener("click", () => {
   document.getElementById("teamDropdown").style.display = "none";
@@ -3021,6 +3031,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
