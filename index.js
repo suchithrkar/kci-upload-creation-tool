@@ -250,14 +250,6 @@ async function renderTeamDropdown() {
     name.textContent = t.name;
     name.onclick = () => setCurrentTeam(t.name);
   
-    const del = document.createElement("span");
-    del.textContent = "✕";
-    del.onclick = async (e) => {
-      e.stopPropagation();
-      if (!confirm(`Delete team "${t.name}" and ALL its data?`)) return;
-      await deleteTeam(t.name);
-    };
-  
     const delWrap = document.createElement("span");
     delWrap.className = "team-del";
     
@@ -2986,6 +2978,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
