@@ -1430,7 +1430,7 @@ header .team-selector .cc-agent-toggle {
 /* Delete click zone (✕ → right edge) */
 .team-del {
   margin-left: auto;          /* push to edge */
-  padding: 6px 8px;           /* 🔥 its own padding */
+  padding: 6px 10px;           /* 🔥 its own padding */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1465,6 +1465,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
