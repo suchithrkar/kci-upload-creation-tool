@@ -2359,7 +2359,14 @@ function renderSbdModal(data) {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><input value="${row.country}"></td>
-        <td><input type="time" value="${row.time}"></td>
+        <td>
+          <input
+            type="time"
+            value="${row.time}"
+            step="60"
+            lang="en-GB"
+          >
+        </td>
         <td><button class="del">✕</button></td>
       `;
       tr.querySelector(".del").onclick = () => tr.remove();
@@ -3054,6 +3061,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
