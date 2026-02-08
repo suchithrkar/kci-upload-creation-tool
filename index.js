@@ -4,6 +4,9 @@ let trackingFile = null;
 let workbookCache = null;
 let tablesMap = {};
 const dataTablesMap = {};
+let currentTeam = null;
+const TEAM_STORE = "teams";
+const lastTeam = localStorage.getItem("kci-last-team");
 const CA_BUCKETS = [
   "0-3 Days",
   "3-5 Days",
@@ -170,7 +173,7 @@ const DUMP_HEADER_DISPLAY_MAP = {
 };
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_NAME = "sheets";
 
 let db = null;
@@ -182,7 +185,10 @@ function openDB() {
     request.onupgradeneeded = function (e) {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "sheetName" });
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(TEAM_STORE)) {
+        db.createObjectStore(TEAM_STORE, { keyPath: "name" });
       }
     };
 
@@ -197,12 +203,96 @@ function openDB() {
   });
 }
 
+async function loadTeams() {
+  const tx = db.transaction(TEAM_STORE, "readonly");
+  const store = tx.objectStore(TEAM_STORE);
+  return new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result || []);
+  });
+}
+
+async function setCurrentTeam(team) {
+  currentTeam = team;
+  localStorage.setItem("kci-last-team", team);
+  document.getElementById("teamToggle").textContent = team + " ▾";
+  await loadDataFromDB();   // 🔥 reload team-scoped data
+}
+
+async function renderTeamDropdown() {
+  const dropdown = document.getElementById("teamDropdown");
+  dropdown.innerHTML = "";
+
+  const teams = await loadTeams();
+
+  teams.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "team-row";
+
+    const name = document.createElement("span");
+    name.textContent = t.name;
+    name.onclick = () => setCurrentTeam(t.name);
+
+    const del = document.createElement("span");
+    del.textContent = "✕";
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm(`Delete team "${t.name}" and ALL its data?`)) return;
+      await deleteTeam(t.name);
+    };
+
+    row.appendChild(name);
+    row.appendChild(del);
+    dropdown.appendChild(row);
+  });
+
+  const add = document.createElement("div");
+  add.className = "team-add";
+  add.textContent = "+ Add Team";
+  add.onclick = addTeamInline;
+
+  dropdown.appendChild(add);
+}
+
+async function addTeamInline() {
+  const name = prompt("Enter new team name");
+  if (!name) return;
+
+  const tx = db.transaction(TEAM_STORE, "readwrite");
+  tx.objectStore(TEAM_STORE).put({ name });
+
+  await renderTeamDropdown();
+}
+
+async function deleteTeam(team) {
+  const tx = db.transaction(STORE_NAME, "readwrite");
+  const store = tx.objectStore(STORE_NAME);
+
+  const req = store.getAllKeys();
+  req.onsuccess = () => {
+    req.result
+      .filter(k => k.startsWith(team + "|"))
+      .forEach(k => store.delete(k));
+  };
+
+  db.transaction(TEAM_STORE, "readwrite")
+    .objectStore(TEAM_STORE)
+    .delete(team);
+
+  currentTeam = null;
+  location.reload();
+}
+
 function openModal(id) {
   document.getElementById(id).style.display = 'flex';
 }
 
 function closeModal(id) {
   document.getElementById(id).style.display = 'none';
+}
+
+function getTeamKey(sheetName) {
+  return `${currentTeam}|${sheetName}`;
 }
 
 function getStore(mode = "readonly") {
@@ -657,8 +747,10 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"].forEach(sheet => {
       dataTablesMap[sheet]?.clear().draw(false);
       store.put({
-        sheetName: sheet,
-        rows: [],
+        id: getTeamKey(sheetName),
+        team: currentTeam,
+        sheetName,
+        rows,
         lastUpdated: new Date().toISOString()
       });
     });
@@ -951,8 +1043,10 @@ function processCsvFile(file, targetSheetName) {
       // Save to IndexedDB
       const store = getStore("readwrite");
       store.put({
-        sheetName: targetSheetName,
-        rows: dataRows,
+        id: getTeamKey(sheetName),
+        team: currentTeam,
+        sheetName,
+        rows,
         lastUpdated: new Date().toISOString()
       });
 
@@ -1111,32 +1205,34 @@ async function processGNProCSOFile(file) {
 
   // Save to IndexedDB
   const writeStore = getStore("readwrite");
-  writeStore.put({
-    sheetName: "CSO Status",
-    rows: finalRows,
+  writestore.put({
+    id: getTeamKey(sheetName),
+    team: currentTeam,
+    sheetName,
+    rows,
     lastUpdated: new Date().toISOString()
   });
 }
 
 function loadDataFromDB() {
+  if (!currentTeam) return;
+
   const store = getStore("readonly");
-  const request = store.getAll();
+  const req = store.getAll();
 
-  request.onsuccess = function () {
-    const records = request.result;
+  req.onsuccess = () => {
+    req.result
+      .filter(r => r.team === currentTeam)
+      .forEach(record => {
+        const dt = dataTablesMap[record.sheetName];
+        if (!dt) return;
 
-    records.forEach(record => {
-      const sheetName = record.sheetName;
-      const dt = dataTablesMap[sheetName];
-      if (!dt) return;
-
-      dt.clear();
-      record.rows.forEach(row => {
-        const normalized = normalizeRowToSchema(row, sheetName);
-        dt.row.add(["", ...normalized]); // S.No placeholder
+        dt.clear();
+        record.rows.forEach(row =>
+          dt.row.add(["", ...normalizeRowToSchema(row, record.sheetName)])
+        );
+        dt.draw(false);
       });
-      dt.draw(false);
-    });
   };
 }
 
@@ -2027,9 +2123,11 @@ async function processTrackingResultsFile(file) {
 
   // 8️⃣ Save to IndexedDB
   const writeStore = getStore("readwrite");
-  writeStore.put({
-    sheetName: "Delivery Details",
-    rows: finalRows,
+  writestore.put({
+    id: getTeamKey(sheetName),
+    team: currentTeam,
+    sheetName,
+    rows,
     lastUpdated: new Date().toISOString()
   });
 }
@@ -2133,8 +2231,11 @@ async function saveSbdData() {
 
   const store = getStore("readwrite");
   store.put({
-    sheetName: "SBD Cut Off Times",
-    periods
+    id: getTeamKey(sheetName),
+    team: currentTeam,
+    sheetName,
+    rows,
+    lastUpdated: new Date().toISOString()
   });
 
   document.getElementById("sbdModal").style.display = "none";
@@ -2683,6 +2784,13 @@ document.getElementById("processRepairBtn")
 
 document.addEventListener('DOMContentLoaded', async () => {
   await openDB();
+  await renderTeamDropdown();
+  
+  if (lastTeam) {
+    setCurrentTeam(lastTeam);
+  } else {
+    document.getElementById("teamToggle").textContent = "Select Team ▾";
+  }
   initEmptyTables();
 
   // IMPORTANT: wait for DataTables to fully initialize
@@ -2740,5 +2848,6 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
