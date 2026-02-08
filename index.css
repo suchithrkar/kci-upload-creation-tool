@@ -1312,8 +1312,9 @@ table.dataTable th {
 
 /* Reuse agent toggle style */
 #teamToggle {
-  min-width: 100px;
+  width: 120px;          /* 🔥 fixed width */
   font-weight: 600;
+  text-align: left;
 }
 
 /* Dropdown must align with toggle */
@@ -1321,6 +1322,12 @@ table.dataTable th {
   right: 0;
   left: auto;
   z-index: 300;
+}
+
+/* Match dropdown width to toggle */
+#teamDropdown {
+  width: 120px;          /* 🔥 same as toggle */
+  box-sizing: border-box;
 }
 
 /* Team row behavior */
@@ -1339,14 +1346,12 @@ table.dataTable th {
 
 /* Active team */
 .team-row.active {
+  background: #e6e9ef;          /* 🔥 clear highlight */
   font-weight: 700;
 }
 
-/* Delete button */
-.team-row span:last-child {
-  color: #888;
-  font-size: 13px;
-  cursor: pointer;
+.team-row.active:hover {
+  background: #dde2ea;
 }
 
 .team-row span:last-child:hover {
@@ -1438,5 +1443,34 @@ header .team-selector .cc-agent-toggle {
   color: #e53935;
 }
 
+/* ===== DELETE ZONE (| + ✕) ===== */
+
+.team-del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;                 /* 🔥 total click width */
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.team-del:hover {
+  background: rgba(229, 57, 53, 0.08);
+}
+
+.team-del .team-sep {
+  margin-right: 2px;
+  color: #aaa;
+  cursor: inherit;
+}
+
+.team-del span:last-child {
+  color: #888;
+  font-size: 13px;
+}
+
+.team-del:hover span:last-child {
+  color: #e53935;
+}
 
 
