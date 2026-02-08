@@ -222,6 +222,7 @@ async function loadTeams() {
 }
 
 async function setCurrentTeam(team) {
+  isAddingTeamInline = false;
   currentTeam = team;                                   // 🔥 single source of truth
   localStorage.setItem("kci-last-team", team);
 
@@ -309,7 +310,6 @@ async function renderTeamDropdown() {
       tx.objectStore(TEAM_STORE).put({ name });
   
       await setCurrentTeam(name);   // auto-select
-      await renderTeamDropdown();
     };
   
     input.onkeydown = (e) => {
@@ -3021,6 +3021,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
