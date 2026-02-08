@@ -5,7 +5,7 @@
   <title>KCI Case Tracker – Upload Excel Creation Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- DataTables CSS -->
+  <!-- DataTables CSS --->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" />
 
   <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600&display=swap" rel="stylesheet">
@@ -18,7 +18,12 @@
 
 <header class="app-header">
   <span class="header-title">KCI Case Tracker – Upload Excel Creation Tool</span>
-  <button id="themeToggle" title="Toggle theme">🌙</button>
+  <button id="themeToggle" title="Toggle theme" style="display: none;">🌙</button>
+  
+  <div class="team-selector">
+    <div id="teamToggle" class="team-toggle">Select Team ▾</div>
+    <div id="teamDropdown" class="team-dropdown"></div>
+  </div>
 </header>
 
 <div class="container">
@@ -48,9 +53,11 @@
     </div>
 
     <div class="action-bar">
-      <button id="copySoBtn">Copy SO Orders</button>
-      <button id="copyTrackingBtn">Copy Tracking URLs</button>
-      <button id="sbdBtn">SBD Cut Off Times</button>
+      <button id="openRepairCasesReportBtn">Open RC Report</button>
+      <button id="closedCasesReportBtn">Closed Report</button>
+      <button id="copySoBtn">Copy SO</button>
+      <button id="copyTrackingBtn">Copy Tracking</button>
+      <button id="sbdBtn">SBD Cut-Off</button>
       <button id="tlBtn">TL</button>
       <button id="marketBtn">Market</button>
       <button id="processRepairBtn">Process Repair Data</button>
@@ -90,9 +97,8 @@
     
     <div class="tl-market-scroll">
       <div id="tlContainer" class="mapping-grid"></div>
+      <button class="add-btn" id="addTlBtn">+ Add TL</button>
     </div>
-    
-    <button class="add-btn" id="addTlBtn">+ Add TL</button>
     
     <div class="modal-actions">
         <button id="saveTlBtn">Save</button>
@@ -107,9 +113,8 @@
     
     <div class="tl-market-scroll">
       <div id="marketContainer" class="mapping-grid"></div>
+      <button class="add-btn" id="addMarketBtn">+ Add Market</button>
     </div>
-    
-    <button class="add-btn" id="addMarketBtn">+ Add Market</button>
     
     <div class="modal-actions">
         <button id="saveMarketBtn">Save</button>
@@ -135,6 +140,102 @@
       <button id="saveSbdBtn">Save</button>
       <button id="closeSbdBtn">Close</button>
     </div>
+  </div>
+</div>
+
+<div id="closedCasesReportModal" class="modal-overlay" style="display:none;">
+  <div class="modal modal-polished modal-large">
+
+    <h3>Closed Cases Report</h3>
+
+    <!-- Filters + Drilldown -->
+    <div class="closed-report-top">
+      <div class="closed-report-filters">
+        <div class="cc-filter-row">
+          <span>Month</span>
+          <div class="cc-select-wrapper">
+            <select id="ccMonthSelect"></select>
+          </div>
+        </div>
+
+        <div class="cc-filter-row">
+          <span>KCI Agents</span>
+          <div class="cc-agent-dropdown">
+            <div id="ccAgentToggle" class="cc-agent-toggle">
+              Select KCI Agents
+            </div>
+            <div id="ccAgentBox" class="cc-agent-box"></div>
+          </div>
+        </div>
+        
+        <div id="ccAgentSelected" class="cc-agent-selected"></div>
+      </div>
+
+      <div class="closed-report-drilldown">
+        <div class="cc-drill-header">
+          <h4 id="ccDrillTitle">Breakdown</h4>
+          <button id="ccDrillTotalBtn" class="cc-total-btn">Total</button>
+        </div>
+      
+        <table id="ccDrillTable" class="display compact">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Cases Closed</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Primary table -->
+    <div class="closed-report-table">
+      <table id="ccSummaryTable" class="display">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Total Closed</th>
+            <th>KCI Closed</th>
+            <th>CRM Auto Closed</th>
+            <th>Agents RS Closed</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeModal('closedCasesReportModal')">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="openRepairCasesReportModal" class="modal-overlay" style="display:none;">
+  <div class="modal modal-polished modal-large">
+
+    <div class="orc-header">
+      <h3>Open Repair Cases Report</h3>
+      <div id="orcSbdSummary" class="orc-sbd-summary"></div>
+    </div>
+
+    <div class="orc-section">
+      <h4>Open Repair Cases</h4>
+      <div id="openRepairCasesTable"></div>
+    </div>
+
+    <div class="orc-section">
+      <h4>Ready for Closure</h4>
+      <div id="readyForClosureTable"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeModal('openRepairCasesReportModal')">
+        Close
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -166,6 +267,25 @@
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
