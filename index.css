@@ -703,7 +703,8 @@ table.dataTable th {
 /* Inputs must respect cell width */
 .sbd-table td input {
   width: 100%;
-  box-sizing: border-box;  /* 🔥 PREVENT OVERFLOW */
+  box-sizing: border-box;
+  text-align: center;   /* ✅ CENTER THE TIME TEXT */
 }
 
 /* Center Period headers */
@@ -1509,6 +1510,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
 
