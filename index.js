@@ -245,20 +245,10 @@ async function renderTeamDropdown() {
   teams.forEach(t => {
     const row = document.createElement("div");
     row.className = "team-row" + (t.name === currentTeam ? " active" : "");
-  
+
     const name = document.createElement("span");
     name.textContent = t.name;
     name.onclick = () => setCurrentTeam(t.name);
-  
-    const delWrap = document.createElement("span");
-    delWrap.className = "team-del";
-    
-    const sep = document.createElement("span");
-    sep.className = "team-sep";
-    sep.textContent = "|";
-    
-    const del = document.createElement("span");
-    del.textContent = "✕";
     
     const sep = document.createElement("span");
     sep.className = "team-sep";
@@ -279,8 +269,9 @@ async function renderTeamDropdown() {
     };
     
     row.appendChild(name);
-    row.appendChild(sep);       // ← visual only
-    row.appendChild(delWrap);  // ← clickable till edge
+    row.appendChild(sep);       // visual only
+    row.appendChild(delWrap);  // clickable till edge
+    
     dropdown.appendChild(row);
   });
 
@@ -2988,6 +2979,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
