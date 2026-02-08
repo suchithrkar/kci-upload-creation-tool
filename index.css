@@ -1449,53 +1449,48 @@ header .team-selector .cc-agent-toggle {
   cursor: inherit;
 }
 
-/* ===== INLINE ADD TEAM ===== */
+/* ===== INLINE ADD TEAM (FINAL SPEC) ===== */
 
 .team-add-inline {
   display: flex;
   align-items: center;
-  gap: 6px;
+  padding: 0;
+  border-top: 1px solid #d6d6d6;   /* 🔥 required */
   background: #f7f8fa;
 }
 
+/* Input sizing is EXACT incl padding */
 .team-add-inline input {
-  flex: 1;
+  width: 105.63px;                /* 🔥 exact width */
+  box-sizing: border-box;         /* 🔥 includes padding */
   padding: 6px 8px;
+
+  border: none;                   /* 🔥 no border */
+  border-radius: 0;               /* 🔥 no radius */
   font-size: 12px;
-  border: 1px solid #cfcfcf;
-  border-radius: 4px;
+  background: transparent;
 }
 
 .team-add-inline input:focus {
   outline: none;
-  border-color: #38e58d;
 }
 
-/* Confirm button (✔) */
-.team-confirm {
-  background: #38e58d;
-  color: #0b3d1c;
-  font-weight: 700;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
+/* Confirm uses same click zone as delete */
+.team-confirm-inline {
+  margin-left: auto;
 }
 
-.team-confirm:hover {
-  background: #2fdc7c;
+/* ✔ default state */
+.team-confirm-inline span {
+  color: #2e7d32;                 /* muted green */
+  font-size: 13px;
 }
 
+/* ✔ hover state */
+.team-confirm-inline:hover {
+  background: rgba(56, 229, 141, 0.12);
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+.team-confirm-inline:hover span {
+  color: #1b5e20;
+}
