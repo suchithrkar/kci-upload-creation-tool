@@ -333,9 +333,11 @@ async function renderTeamDropdown() {
       }
     };
   
-    row.appendChild(input);
-    row.appendChild(sep);
-    row.appendChild(confirmWrap);
+    const nameWrap = document.createElement("span");
+    nameWrap.appendChild(input);
+    row.appendChild(nameWrap);   // ← same position as team name span
+    row.appendChild(sep);        // |
+    row.appendChild(confirmWrap); // ✔ (same hit-zone as ✕)
     dropdown.appendChild(row);
   }
   const add = document.createElement("div");
@@ -3042,6 +3044,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
