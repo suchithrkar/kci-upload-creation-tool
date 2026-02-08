@@ -1342,8 +1342,15 @@ table.dataTable th {
 
 /* Active team */
 .team-row.active {
-  background: #cfe3f8;          /* 🔥 clearly visible */
-  font-weight: 700;
+  background: rgba(21, 25, 35, 0.08);   /* subtle, neutral */
+  font-weight: 600;
+}
+
+.team-row.active::before {
+  content: "";
+  width: 3px;
+  background: #151923;                /* header-matched */
+  align-self: stretch;
 }
 
 .team-row.active::before {
@@ -1465,6 +1472,7 @@ header .team-selector .cc-agent-toggle {
 .team-del:hover span:last-child {
   color: #e53935;
 }
+
 
 
 
