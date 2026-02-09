@@ -2733,7 +2733,7 @@ async function buildRepairCases() {
 
   const tlMap = teamData.find(x => x.sheetName === "TL_MAP")?.data || [];
   const marketMap = teamData.find(x => x.sheetName === "MARKET_MAP")?.data || [];
-  const sbdConfig = teamData.find(x => x.sheetName === "SBD Cut Off Times");
+  const sbdConfig = teamData.find(x => x.sheetName === "SBD Cut Off Times") || null;
 
   const validCases = dump.filter(r =>
     ["parts shipped", "onsite solution", "offsite solution"]
@@ -2818,7 +2818,11 @@ async function buildRepairCases() {
       d[1], d[2], d[3], d[6], calculatedResolution, d[9], d[15],
       getCAGroup(d[2]),
       tl,
-      calculateSBD({ createdOn: d[2], country: d[6] }, firstOrder, sbdConfig),
+      calculateSBD(
+        { createdOn: d[2], country: d[6] },
+        firstOrder,
+        sbdConfig
+      ),
       onsiteRFC,
       csrRFC,
       benchRFC,
@@ -2911,9 +2915,7 @@ async function buildClosedCasesReport() {
     
     const tl =
       tlMap.find(t =>
-        t.agents.some(a =>
-          normalizeText(a) === normalizeText(caseOwner)
-        )
+        t.agents.some(a => normalizeText(a) === ownerNorm)
       )?.name || "Unassigned";
     
     const market =
@@ -3082,6 +3084,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
