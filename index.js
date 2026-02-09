@@ -89,6 +89,7 @@ const TABLE_SCHEMAS = {
 
   "Closed Cases": [
     "Case ID",
+    " Full Name (Primary Contact) (Contact)",
     "Created On",
     "Modified By",
     "Modified On",
@@ -3062,6 +3063,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
