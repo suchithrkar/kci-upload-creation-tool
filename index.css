@@ -1362,7 +1362,8 @@ table.dataTable th {
 }
 
 .team-add:hover {
-  background: #f0f1f3;
+  background: rgba(56, 229, 141, 0.18);   /* ✅ soft green */
+  color: #1b5e20;                         /* optional: darker green text */
 }
 
 /* ===== TEAM SELECTOR WIDTH FIX ===== */
@@ -1510,6 +1511,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
 
