@@ -2733,7 +2733,10 @@ async function buildRepairCases() {
 
   const tlMap = teamData.find(x => x.sheetName === "TL_MAP")?.data || [];
   const marketMap = teamData.find(x => x.sheetName === "MARKET_MAP")?.data || [];
-  const sbdConfig = teamData.find(x => x.sheetName === "SBD Cut Off Times") || null;
+  const sbdConfig =
+    teamData.find(x => x.sheetName === "SBD Cut Off Times")?.periods
+      ? teamData.find(x => x.sheetName === "SBD Cut Off Times")
+      : null;
 
   const validCases = dump.filter(r =>
     ["parts shipped", "onsite solution", "offsite solution"]
@@ -2898,20 +2901,21 @@ async function buildClosedCasesReport() {
 
     const repairRow = repair.find(r => r[0] === c[0]);
 
-    let closedBy = c[2];
+    let closedBy = c[3];
     if (closedBy === "# CrmWebJobUser-Prod") closedBy = "CRM Auto Closed";
     else if (
       ["# MSFT-ServiceSystemAdmin",
        "# CrmEEGUser-Prod",
        "# MSFT-ServiceSystemAdminDev",
        "SYSTEM"].includes(closedBy)
-    ) closedBy = c[8];
+    ) closedBy = c[9];
 
     // 🔥 Skip if already exists (immutable)
     if (closedMap.has(c[0])) return;
 
-    const caseOwner = c[8];   // Owner
-    const country = c[9];     // Country
+    const caseOwner = c[9];   // Owner
+    const country = c[10];     // Country
+    const ownerNorm = normalizeText(caseOwner);
     
     const tl =
       tlMap.find(t =>
@@ -3084,6 +3088,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
