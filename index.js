@@ -2885,6 +2885,8 @@ async function buildClosedCasesReport() {
 
   const closed = teamData.find(x => x.sheetName === "Closed Cases")?.rows || [];
   const repair = teamData.find(x => x.sheetName === "Repair Cases")?.rows || [];
+  const tlMap = teamData.find(x => x.sheetName === "TL_MAP")?.data || [];
+  const marketMap = teamData.find(x => x.sheetName === "MARKET_MAP")?.data || [];
 
   const rows = [];
 
@@ -2903,24 +2905,41 @@ async function buildClosedCasesReport() {
 
     // 🔥 Skip if already exists (immutable)
     if (closedMap.has(c[0])) return;
+
+    const caseOwner = c[8];   // Owner
+    const country = c[9];     // Country
     
-    closedMap.set(c[0], [
-      c[0],
-      repairRow?.[1] || "",
-      c[1],                 // Created On
-      c[6],                 // Created By
-      c[2],                 // Modified By
-      c[3],                 // Modified On
-      c[4],                 // Case Closed Date
-      closedBy,
-      c[9],                 // Country
-      c[5],                 // Resolution Code
-      c[8],                 // Case Owner
-      c[10],                // OTC Code
-      repairRow?.[9] || "", // TL
-      repairRow?.[10] || "",// SBD
-      repairRow?.[14] || "" // Market
-    ]);
+    const tl =
+      tlMap.find(t =>
+        t.agents.some(a =>
+          normalizeText(a) === normalizeText(caseOwner)
+        )
+      )?.name || "Unassigned";
+    
+    const market =
+      marketMap.find(m =>
+        m.countries.some(cn =>
+          normalizeText(cn) === normalizeText(country)
+        )
+      )?.name || "Unassigned";
+
+      closedMap.set(c[0], [
+        c[0],
+        c[1],          // ✅ Customer Name (Primary Contact)
+        c[2],          // Created On
+        c[7],          // Created By
+        c[3],          // Modified By
+        c[4],          // Modified On
+        c[5],          // Case Closed Date
+        closedBy,
+        c[10],          // Country
+        c[6],          // Case Resolution Code
+        c[9],          // Case Owner
+        c[11],         // OTC Code
+        tl,            // ✅ TL (from TL modal)
+        repairRow?.[10] || "",   // SBD (unchanged)
+        market         // ✅ Market (from Market modal)
+      ]);
     
     newlyClosedIds.add(c[0]);
   });
@@ -3063,6 +3082,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
