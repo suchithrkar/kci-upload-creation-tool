@@ -1889,8 +1889,8 @@ function getFirstOrderDate(caseId, wo, mo, so) {
 }
 
 function calculateSBD(caseRow, firstOrderDate, sbdConfig) {
-  if (!Array.isArray(sbdConfig.periods)) return "NA";
-  if (!firstOrderDate || !sbdConfig?.periods) return "NA";
+  if (!sbdConfig || !Array.isArray(sbdConfig.periods)) return "NA";
+  if (!firstOrderDate) return "NA";
 
   const caseCreated = new Date(caseRow.createdOn);
   const caseDateOnly = toDateOnly(caseCreated);
@@ -3082,6 +3082,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
