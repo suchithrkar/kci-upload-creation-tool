@@ -3285,18 +3285,26 @@ document.getElementById("importBackupInput")
     
         const restoredRows = [];
     
-        for (let i = 0; i < record.rows.length; i++) {
-    
-          restoredRows.push(record.rows[i]);
-    
-          processedCases++;
-    
+        const batchSize = 200;   // 🔥 tweakable (150–500 safe range)
+        let i = 0;
+        
+        while (i < record.rows.length) {
+        
+          const end = Math.min(i + batchSize, record.rows.length);
+        
+          for (; i < end; i++) {
+            restoredRows.push(record.rows[i]);
+          }
+        
+          processedCases += (end - (i - (end - i)));
+        
           updateProgressContext(
             processedCases,
             totalCases,
             `Restoring ${record.sheetName} (${processedCases}/${totalCases})`
           );
-    
+        
+          // Yield once per batch instead of per row
           await new Promise(requestAnimationFrame);
         }
     
@@ -3338,6 +3346,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
