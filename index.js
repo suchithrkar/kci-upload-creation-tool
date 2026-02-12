@@ -3156,6 +3156,18 @@ document.getElementById("exportBackupBtn").addEventListener("click", async () =>
   URL.revokeObjectURL(a.href);
 });
 
+async function putRecord(record) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+
+    const req = store.put(record);
+
+    req.onsuccess = () => resolve();
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+
 // ===============================
 // IMPORT BACKUP (STRICT REPLACE)
 // ===============================
@@ -3197,8 +3209,6 @@ document.getElementById("importBackupInput")
     // ===============================
     // DEEP PROGRESS IMPORT
     // ===============================
-
-    const writeStore = getStore("readwrite");
     
     // 1️⃣ Delete all existing team data (instant, no progress)
     const allKeys = await new Promise(res => {
@@ -3206,9 +3216,15 @@ document.getElementById("importBackupInput")
       req.onsuccess = () => res(req.result);
     });
     
-    allKeys
-      .filter(k => k.startsWith(currentTeam + "|"))
-      .forEach(k => writeStore.delete(k));
+    for (const key of allKeys.filter(k => k.startsWith(currentTeam + "|"))) {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.delete(key);
+        req.onsuccess = () => resolve();
+        req.onerror = e => reject(e.target.error);
+      });
+    }
     
     // 2️⃣ Identify sheets that contain actual rows
     const sheetsWithRows = parsed.data.filter(
@@ -3277,7 +3293,7 @@ document.getElementById("importBackupInput")
           await new Promise(requestAnimationFrame);
         }
     
-        writeStore.put({
+        await putRecord({
           ...record,
           id: getTeamKey(record.sheetName),
           team: currentTeam,
@@ -3287,7 +3303,7 @@ document.getElementById("importBackupInput")
     
       } else {
         // Metadata sheets (TL_MAP, MARKET_MAP, etc.)
-        writeStore.put({
+        await putRecord({
           ...record,
           id: getTeamKey(record.sheetName),
           team: currentTeam,
@@ -3315,6 +3331,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
