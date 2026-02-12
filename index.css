@@ -40,7 +40,7 @@ header {
   background: #ffffff;
   color: #151923;
   border: none;
-  padding: 6px 14px;
+  padding: 8px 14px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1528,6 +1528,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
 
