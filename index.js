@@ -3219,6 +3219,10 @@ async function putRecord(record) {
 // IMPORT BACKUP (STRICT REPLACE)
 // ===============================
 
+document.getElementById("importBackupBtn").addEventListener("click", () => {
+  document.getElementById("importBackupInput").click();
+});
+
 document.getElementById("importBackupInput")
   .addEventListener("change", async (e) => {
 
@@ -3303,6 +3307,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
