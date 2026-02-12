@@ -3211,9 +3211,13 @@ document.getElementById("importBackupInput")
     // ===============================
     
     // 1️⃣ Delete all existing team data (instant, no progress)
-    const allKeys = await new Promise(res => {
-      const req = writeStore.getAllKeys();
-      req.onsuccess = () => res(req.result);
+    const allKeys = await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAllKeys();
+    
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = e => reject(e.target.error);
     });
     
     for (const key of allKeys.filter(k => k.startsWith(currentTeam + "|"))) {
@@ -3240,13 +3244,16 @@ document.getElementById("importBackupInput")
     // Edge case: no rows
     if (totalCases === 0) {
       // Restore everything without progress
-      parsed.data.forEach(record => {
-        writeStore.put({
+      for (const record of parsed.data) {
+        if (!record.sheetName) continue;
+      
+        await putRecord({
           ...record,
           id: getTeamKey(record.sheetName),
-          team: currentTeam
+          team: currentTeam,
+          lastUpdated: record.lastUpdated || new Date().toISOString()
         });
-      });
+      }
     
       renderTeamDropdown();
     
@@ -3331,6 +3338,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
