@@ -34,6 +34,27 @@ header {
   gap: 16px;
 }
 
+/* ===== HEADER BACKUP BUTTONS ===== */
+
+.header-btn {
+  background: #ffffff;
+  color: #151923;
+  border: none;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.header-btn:hover {
+  opacity: 0.9;
+}
+
+.import-btn {
+  display: inline-block;
+}
+
 /* ===== CONTENT AREA ===== */
 .container {
   background: var(--bg-main);
@@ -1511,6 +1532,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
 
