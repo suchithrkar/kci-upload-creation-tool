@@ -3215,14 +3215,17 @@ document.getElementById("importBackupInput")
       });
     });
 
-    alert("Backup imported successfully.");
-
-    // 5️⃣ Refresh UI
-    Object.values(dataTablesMap).forEach(dt => {
-      dt.clear().draw(false);
-    });
-
-    loadDataFromDB();
+  alert("Backup imported successfully.");
+  
+  // 🔄 Re-render team dropdown (minor UI integrity improvement)
+  renderTeamDropdown();
+  
+  // 5️⃣ Refresh UI
+  Object.values(dataTablesMap).forEach(dt => {
+    dt.clear().draw(false);
+  });
+  
+  loadDataFromDB();
 
   } catch (err) {
     alert("Failed to import backup. Invalid JSON file.");
@@ -3230,4 +3233,5 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
