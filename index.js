@@ -160,6 +160,13 @@ const TABLE_SCHEMAS = {
   ]
 };
 
+function resetInlineTeamAdd() {
+  if (isAddingTeamInline) {
+    isAddingTeamInline = false;
+    renderTeamDropdown();   // rebuild dropdown in normal state
+  }
+}
+
 function isRepairResolution(resolution) {
   return RESOLUTION_TYPES
     .map(r => r.toLowerCase())
@@ -365,9 +372,22 @@ async function renderTeamDropdown() {
 
 document.getElementById("teamToggle").onclick = (e) => {
   e.stopPropagation();
+
   const box = document.getElementById("teamDropdown");
-  box.style.display =
-    box.style.display === "block" ? "none" : "block";
+  const isOpen = box.style.display === "block";
+
+  if (isOpen) {
+    box.style.display = "none";
+
+    // 🔥 RESET INLINE ADD STATE IF DROPDOWN IS CLOSED
+    if (isAddingTeamInline) {
+      isAddingTeamInline = false;
+      renderTeamDropdown();
+    }
+
+  } else {
+    box.style.display = "block";
+  }
 };
 
 // 🔥 Prevent clicks inside team dropdown from closing it
@@ -375,8 +395,14 @@ document.getElementById("teamDropdown").addEventListener("click", (e) => {
   e.stopPropagation();
 });
 
-document.addEventListener("click", () => {
-  document.getElementById("teamDropdown").style.display = "none";
+document.addEventListener("click", (e) => {
+  const dropdown = document.getElementById("teamDropdown");
+  const toggle = document.getElementById("teamToggle");
+
+  if (!dropdown.contains(e.target) && !toggle.contains(e.target)) {
+    dropdown.style.display = "none";
+    resetInlineTeamAdd();   // 🔥 reset inline input when closing
+  }
 });
 
 async function deleteTeam(team) {
@@ -3088,6 +3114,7 @@ document.addEventListener("keydown", (e) => {
     confirmBtn.click();
   }
 });
+
 
 
 
