@@ -3116,6 +3116,53 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ===============================
+// IMPORT PROGRESS OVERLAY HELPERS
+// ===============================
+
+function showImportOverlay(status = "Processing...") {
+  const overlay = document.getElementById("progressOverlay");
+  const statusText = document.getElementById("overlayStatusText");
+  const bar = document.getElementById("overlayProgressBar");
+  const percentText = document.getElementById("overlayProgressText");
+  const confirmBtn = document.getElementById("overlayConfirmBtn");
+
+  overlay.style.display = "flex";
+  overlay.classList.remove("progress-complete");
+
+  statusText.textContent = status;
+  bar.style.width = "0%";
+  percentText.textContent = "0%";
+  confirmBtn.style.display = "none";
+}
+
+function updateImportProgress(percent, status) {
+  const bar = document.getElementById("overlayProgressBar");
+  const percentText = document.getElementById("overlayProgressText");
+  const statusText = document.getElementById("overlayStatusText");
+
+  bar.style.width = percent + "%";
+  percentText.textContent = percent + "%";
+
+  if (status) {
+    statusText.textContent = status;
+  }
+}
+
+function completeImportOverlay(message = "Import Complete") {
+  const overlay = document.getElementById("progressOverlay");
+  const confirmBtn = document.getElementById("overlayConfirmBtn");
+  const statusText = document.getElementById("overlayStatusText");
+
+  overlay.classList.add("progress-complete");
+  statusText.textContent = message;
+  confirmBtn.style.display = "inline-block";
+
+  confirmBtn.onclick = () => {
+    overlay.style.display = "none";
+  };
+}
+
+// ===============================
 // EXPORT BACKUP
 // ===============================
 
@@ -3256,6 +3303,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
