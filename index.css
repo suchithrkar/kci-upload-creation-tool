@@ -51,10 +51,6 @@ header {
   opacity: 0.9;
 }
 
-.import-btn {
-  display: inline-block;
-}
-
 /* ===== CONTENT AREA ===== */
 .container {
   background: var(--bg-main);
@@ -1532,6 +1528,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
 
