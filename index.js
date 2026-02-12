@@ -3194,28 +3194,113 @@ document.getElementById("importBackupInput")
       return;
     }
 
-    const writeStore = getStore("readwrite");
-
-    // 3️⃣ DELETE ALL existing team data
+    // ===============================
+    // DEEP PROGRESS IMPORT
+    // ===============================
+    
+    // 1️⃣ Delete all existing team data (instant, no progress)
     const allKeys = await new Promise(res => {
       const req = writeStore.getAllKeys();
       req.onsuccess = () => res(req.result);
     });
-
+    
     allKeys
       .filter(k => k.startsWith(currentTeam + "|"))
       .forEach(k => writeStore.delete(k));
-
-    // 4️⃣ RESTORE FROM BACKUP
-    parsed.data.forEach(record => {
-      writeStore.put({
-        ...record,
-        id: getTeamKey(record.sheetName),
-        team: currentTeam
-      });
+    
+    // 2️⃣ Identify sheets that contain actual rows
+    const sheetsWithRows = parsed.data.filter(
+      r => Array.isArray(r.rows) && r.rows.length > 0
+    );
+    
+    // 3️⃣ Calculate total cases across all sheets
+    let totalCases = 0;
+    sheetsWithRows.forEach(r => {
+      totalCases += r.rows.length;
     });
+    
+    // Edge case: no rows
+    if (totalCases === 0) {
+      // Restore everything without progress
+      parsed.data.forEach(record => {
+        writeStore.put({
+          ...record,
+          id: getTeamKey(record.sheetName),
+          team: currentTeam
+        });
+      });
+    
+      renderTeamDropdown();
+    
+      Object.values(dataTablesMap).forEach(dt => {
+        dt.clear().draw(false);
+      });
+    
+      loadDataFromDB();
+    
+      alert("Backup imported successfully.");
+      e.target.value = "";
+      return;
+    }
+    
+    // 4️⃣ Start progress overlay
+    startProgressContext("Restoring backup...");
+    
+    let processedCases = 0;
+    
+    // 5️⃣ Restore sheet by sheet
+    for (const record of parsed.data) {
+    
+      // If sheet has rows → process case-by-case
+      if (Array.isArray(record.rows) && record.rows.length > 0) {
+    
+        const restoredRows = [];
+    
+        for (let i = 0; i < record.rows.length; i++) {
+    
+          restoredRows.push(record.rows[i]);
+    
+          processedCases++;
+    
+          updateProgressContext(
+            processedCases,
+            totalCases,
+            `Restoring ${record.sheetName} (${processedCases}/${totalCases})`
+          );
+    
+          await new Promise(requestAnimationFrame);
+        }
+    
+        writeStore.put({
+          ...record,
+          id: getTeamKey(record.sheetName),
+          team: currentTeam,
+          rows: restoredRows
+        });
+    
+      } else {
+        // Metadata sheets (TL_MAP, MARKET_MAP, etc.)
+        writeStore.put({
+          ...record,
+          id: getTeamKey(record.sheetName),
+          team: currentTeam
+        });
+      }
+    }
+    
+    // 6️⃣ Finish progress
+    endProgressContext("Backup imported successfully");
+    
+    // 7️⃣ Refresh UI
+    renderTeamDropdown();
+    
+    Object.values(dataTablesMap).forEach(dt => {
+      dt.clear().draw(false);
+    });
+    
+    loadDataFromDB();
 
-  alert("Backup imported successfully.");
+    const writeStore = getStore("readwrite");
   
   // 🔄 Re-render team dropdown (minor UI integrity improvement)
   renderTeamDropdown();
@@ -3233,5 +3318,6 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
