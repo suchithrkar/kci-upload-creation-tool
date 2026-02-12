@@ -3207,134 +3207,41 @@ document.getElementById("importBackupInput")
     }
 
     // ===============================
-    // DEEP PROGRESS IMPORT
+    // SIMPLE IMPORT WITH OVERLAY
     // ===============================
     
-    // 1️⃣ Delete all existing team data (instant, no progress)
-    const allKeys = await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.getAllKeys();
+    showImportOverlay("Restoring backup...");
     
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = e => reject(e.target.error);
-    });
+    const totalRecords = parsed.data.length;
+    let processedRecords = 0;
     
-    for (const key of allKeys.filter(k => k.startsWith(currentTeam + "|"))) {
-      await new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.delete(key);
-        req.onsuccess = () => resolve();
-        req.onerror = e => reject(e.target.error);
-      });
-    }
-    
-    // 2️⃣ Identify sheets that contain actual rows
-    const sheetsWithRows = parsed.data.filter(
-      r => Array.isArray(r.rows) && r.rows.length > 0
-    );
-    
-    // 3️⃣ Calculate total cases across all sheets
-    let totalCases = 0;
-    sheetsWithRows.forEach(r => {
-      totalCases += r.rows.length;
-    });
-    
-    // Edge case: no rows
-    if (totalCases === 0) {
-      // Restore everything without progress
-      for (const record of parsed.data) {
-        if (!record.sheetName) continue;
-      
-        await putRecord({
-          ...record,
-          id: getTeamKey(record.sheetName),
-          team: currentTeam,
-          lastUpdated: record.lastUpdated || new Date().toISOString()
-        });
-      }
-    
-      renderTeamDropdown();
-    
-      Object.values(dataTablesMap).forEach(dt => {
-        dt.clear().draw(false);
-      });
-    
-      loadDataFromDB();
-    
-      alert("Backup imported successfully.");
-      e.target.value = "";
-      return;
-    }
-    
-    // 4️⃣ Start progress overlay
-    startProgressContext("Restoring backup...");
-    
-    let processedCases = 0;
-    
-    // 5️⃣ Restore sheet by sheet
+    // Restore all records (sheet-level progress)
     for (const record of parsed.data) {
-      if (!record.sheetName) {
-        console.warn("Skipping record without sheetName:", record);
-        continue;
-      }
     
-      // If sheet has rows → process case-by-case
-      if (Array.isArray(record.rows) && record.rows.length > 0) {
+      if (!record.sheetName) continue;
     
-        const restoredRows = [];
+      await putRecord({
+        ...record,
+        id: getTeamKey(record.sheetName),
+        team: currentTeam,
+        lastUpdated: record.lastUpdated || new Date().toISOString()
+      });
     
-        const batchSize = 10;   // 🔥 tweakable (150–500 safe range)
-        let i = 0;
-        
-        while (i < record.rows.length) {
-        
-          const end = Math.min(i + batchSize, record.rows.length);
-        
-          for (; i < end; i++) {
-            restoredRows.push(record.rows[i]);
-          }
-        
-          processedCases += (end - (i - (end - i)));
-        
-          updateProgressContext(
-            processedCases,
-            totalCases,
-            `Restoring ${record.sheetName} (${processedCases}/${totalCases})`
-          );
-
-          // Force layout flush so progress bar visually updates
-          document.getElementById("overlayProgressBar").offsetHeight;
-        
-          // Yield once per batch instead of per row
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
+      processedRecords++;
     
-        await putRecord({
-          ...record,
-          id: getTeamKey(record.sheetName),
-          team: currentTeam,
-          rows: restoredRows,
-          lastUpdated: record.lastUpdated || new Date().toISOString()
-        });
+      const percent = Math.round((processedRecords / totalRecords) * 100);
     
-      } else {
-        // Metadata sheets (TL_MAP, MARKET_MAP, etc.)
-        await putRecord({
-          ...record,
-          id: getTeamKey(record.sheetName),
-          team: currentTeam,
-          lastUpdated: record.lastUpdated || new Date().toISOString()
-        });
-      }
+      updateImportProgress(
+        percent,
+        `Restoring ${record.sheetName} (${processedRecords}/${totalRecords})`
+      );
     }
     
-    // 6️⃣ Finish progress
-    endProgressContext("Backup imported successfully");
+    // Finish
+    completeImportOverlay("Backup imported successfully");
     
-    // 7️⃣ Refresh UI
-    renderTeamDropdown();
+    // Refresh UI
+    await renderTeamDropdown();
     
     Object.values(dataTablesMap).forEach(dt => {
       dt.clear().draw(false);
@@ -3349,6 +3256,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
