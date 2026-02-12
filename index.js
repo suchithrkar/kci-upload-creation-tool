@@ -163,7 +163,7 @@ const TABLE_SCHEMAS = {
 function resetInlineTeamAdd() {
   if (isAddingTeamInline) {
     isAddingTeamInline = false;
-    renderTeamDropdown();   // rebuild dropdown in normal state
+    renderTeamDropdown();   // rebuild dropdown in normal state --
   }
 }
 
@@ -3307,6 +3307,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
