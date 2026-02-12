@@ -3115,48 +3115,119 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ===============================
+// EXPORT BACKUP
+// ===============================
 
+document.getElementById("exportBackupBtn").addEventListener("click", async () => {
+  if (!requireTeamSelected()) return;
 
+  const store = getStore("readonly");
+  const all = await new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+  });
 
+  const teamData = all.filter(r => r.team === currentTeam);
 
+  const backup = {
+    team: currentTeam,
+    exportedAt: new Date().toISOString(),
+    data: teamData
+  };
 
+  const today = new Date();
+  const dd = String(today.getDate()).padStart(2, "0");
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const yyyy = today.getFullYear();
 
+  const fileName = `${currentTeam}_Backup_${dd}-${mm}-${yyyy}.json`;
 
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: "application/json" }
+  );
 
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
 
+  URL.revokeObjectURL(a.href);
+});
 
+// ===============================
+// IMPORT BACKUP (STRICT REPLACE)
+// ===============================
 
+document.getElementById("importBackupInput")
+  .addEventListener("change", async (e) => {
 
+  if (!requireTeamSelected()) {
+    e.target.value = "";
+    return;
+  }
 
+  const file = e.target.files[0];
+  if (!file) return;
 
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
 
+    // 1️⃣ Validate structure
+    if (!parsed.team || !Array.isArray(parsed.data)) {
+      alert("Invalid backup file.");
+      e.target.value = "";
+      return;
+    }
 
+    // 2️⃣ Validate team match
+    if (parsed.team !== currentTeam) {
+      alert(`Backup belongs to team "${parsed.team}".\n\nSelect correct team before importing.`);
+      e.target.value = "";
+      return;
+    }
 
+    if (!confirm(`This will FULLY REPLACE all data for team "${currentTeam}". Continue?`)) {
+      e.target.value = "";
+      return;
+    }
 
+    const writeStore = getStore("readwrite");
 
+    // 3️⃣ DELETE ALL existing team data
+    const allKeys = await new Promise(res => {
+      const req = writeStore.getAllKeys();
+      req.onsuccess = () => res(req.result);
+    });
 
+    allKeys
+      .filter(k => k.startsWith(currentTeam + "|"))
+      .forEach(k => writeStore.delete(k));
 
+    // 4️⃣ RESTORE FROM BACKUP
+    parsed.data.forEach(record => {
+      writeStore.put({
+        ...record,
+        id: getTeamKey(record.sheetName),
+        team: currentTeam
+      });
+    });
 
+    alert("Backup imported successfully.");
 
+    // 5️⃣ Refresh UI
+    Object.values(dataTablesMap).forEach(dt => {
+      dt.clear().draw(false);
+    });
 
+    loadDataFromDB();
 
+  } catch (err) {
+    alert("Failed to import backup. Invalid JSON file.");
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  e.target.value = "";
+});
 
