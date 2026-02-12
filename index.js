@@ -3285,7 +3285,7 @@ document.getElementById("importBackupInput")
     
         const restoredRows = [];
     
-        const batchSize = 200;   // 🔥 tweakable (150–500 safe range)
+        const batchSize = 50;   // 🔥 tweakable (150–500 safe range)
         let i = 0;
         
         while (i < record.rows.length) {
@@ -3346,6 +3346,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
