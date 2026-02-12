@@ -3252,6 +3252,10 @@ document.getElementById("importBackupInput")
     
     // 5️⃣ Restore sheet by sheet
     for (const record of parsed.data) {
+      if (!record.sheetName) {
+        console.warn("Skipping record without sheetName:", record);
+        continue;
+      }
     
       // If sheet has rows → process case-by-case
       if (Array.isArray(record.rows) && record.rows.length > 0) {
@@ -3277,7 +3281,8 @@ document.getElementById("importBackupInput")
           ...record,
           id: getTeamKey(record.sheetName),
           team: currentTeam,
-          rows: restoredRows
+          rows: restoredRows,
+          lastUpdated: record.lastUpdated || new Date().toISOString()
         });
     
       } else {
@@ -3285,7 +3290,8 @@ document.getElementById("importBackupInput")
         writeStore.put({
           ...record,
           id: getTeamKey(record.sheetName),
-          team: currentTeam
+          team: currentTeam,
+          lastUpdated: record.lastUpdated || new Date().toISOString()
         });
       }
     }
@@ -3303,11 +3309,13 @@ document.getElementById("importBackupInput")
     loadDataFromDB();
 
   } catch (err) {
-    alert("Failed to import backup. Invalid JSON file.");
+    console.error("Import failed:", err);
+    alert("Import failed. Check console for details.");
   }
 
   e.target.value = "";
 });
+
 
 
 
