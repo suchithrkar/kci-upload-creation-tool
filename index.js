@@ -3197,6 +3197,8 @@ document.getElementById("importBackupInput")
     // ===============================
     // DEEP PROGRESS IMPORT
     // ===============================
+
+    const writeStore = getStore("readwrite");
     
     // 1️⃣ Delete all existing team data (instant, no progress)
     const allKeys = await new Promise(res => {
@@ -3300,24 +3302,13 @@ document.getElementById("importBackupInput")
     
     loadDataFromDB();
 
-    const writeStore = getStore("readwrite");
-  
-  // 🔄 Re-render team dropdown (minor UI integrity improvement)
-  renderTeamDropdown();
-  
-  // 5️⃣ Refresh UI
-  Object.values(dataTablesMap).forEach(dt => {
-    dt.clear().draw(false);
-  });
-  
-  loadDataFromDB();
-
   } catch (err) {
     alert("Failed to import backup. Invalid JSON file.");
   }
 
   e.target.value = "";
 });
+
 
 
 
