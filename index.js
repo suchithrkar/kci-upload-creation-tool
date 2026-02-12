@@ -3285,7 +3285,7 @@ document.getElementById("importBackupInput")
     
         const restoredRows = [];
     
-        const batchSize = 10;   // 🔥 tweakable (150–500 safe range)
+        const batchSize = 200;   // 🔥 tweakable (150–500 safe range)
         let i = 0;
         
         while (i < record.rows.length) {
@@ -3303,9 +3303,12 @@ document.getElementById("importBackupInput")
             totalCases,
             `Restoring ${record.sheetName} (${processedCases}/${totalCases})`
           );
+
+          // Force layout flush so progress bar visually updates
+          document.getElementById("overlayProgressBar").offsetHeight;
         
           // Yield once per batch instead of per row
-          await new Promise(requestAnimationFrame);
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
     
         await putRecord({
@@ -3346,6 +3349,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
