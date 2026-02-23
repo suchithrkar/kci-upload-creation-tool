@@ -1996,18 +1996,17 @@ function getCalculatedResolution(caseId, wo, so, mo, dumpResolution) {
 }
 
 async function buildCopySOOrders() {
-  const store = getStore("readonly");
+  const readStore = getStore("readonly");
   const allData = await new Promise(res => {
-    const req = store.getAll();
+    const req = readStore.getAll();
     req.onsuccess = () => res(req.result);
   });
-  
-  // 🔒 TEAM FILTER
+
   const teamData = allData.filter(r => r.team === currentTeam);
-  
+
   const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
   const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
-  const cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  let cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
   const dumpIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
   const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
@@ -2018,9 +2017,9 @@ async function buildCopySOOrders() {
   const soOrderIdx = TABLE_SCHEMAS["SO"].indexOf("Order Reference ID");
 
   const csoCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+  const csoOrderIdx = TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
   const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
 
-  // Step 1: Identify repair cases from Dump
   const repairCaseIds = [
     ...new Set(
       dump
@@ -2028,52 +2027,103 @@ async function buildCopySOOrders() {
         .map(r => r[dumpCaseIdx])
     )
   ];
-  
-  // Step 2: Recalculate resolution
+
   const offsiteCases = repairCaseIds.filter(caseId => {
     const dumpRow = dumpByCaseId[caseId];
     if (!dumpRow) return false;
-  
+
     const derivedResolution = getCalculatedResolution(
       caseId,
-      [],       // WO not required here
+      [],
       so,
-      [],       // MO not required
+      [],
       dumpRow[dumpIdx]
     );
-  
+
     return derivedResolution === "Offsite Solution";
   });
 
   const result = [];
+  let csoUpdated = false;
 
   offsiteCases.forEach(caseId => {
+
     const soRows = so.filter(r => r[soCaseIdx] === caseId);
-    if (!soRows.length) return; // skip if no SO
+    if (!soRows.length) return;
 
-    // latest SO by date
-    const latest = soRows.sort((a, b) => {
-      const da = new Date(a[soDateIdx]);
-      const db = new Date(b[soDateIdx]);
-      return db - da;
-    })[0];
+    const latest = soRows.sort((a, b) =>
+      new Date(b[soDateIdx]) - new Date(a[soDateIdx])
+    )[0];
 
-    let orderId = stripOrderSuffix(latest[soOrderIdx]);
-    if (!orderId) return;
+    const latestOrderId = stripOrderSuffix(latest[soOrderIdx]);
+    if (!latestOrderId) return;
 
-    const csoRow = cso.find(r => r[csoCaseIdx] === caseId);
-    if (csoRow) {
+    const matchingRows = cso.filter(r => r[csoCaseIdx] === caseId);
+
+    // ===== CASE C: No CSO row exists =====
+    if (!matchingRows.length) {
+      cso.push([caseId, latestOrderId, "", "", ""]);
+      csoUpdated = true;
+      result.push(`${caseId},${latestOrderId}`);
+      return;
+    }
+
+    // ===== Remove duplicates if exist =====
+    if (matchingRows.length > 1) {
+      cso = cso.filter(r => r[csoCaseIdx] !== caseId);
+      cso.push([caseId, latestOrderId, "", "", ""]);
+      csoUpdated = true;
+      result.push(`${caseId},${latestOrderId}`);
+      return;
+    }
+
+    const csoRow = matchingRows[0];
+    const existingOrder = stripOrderSuffix(csoRow[csoOrderIdx]);
+
+    // ===== CASE A: Order matches =====
+    if (existingOrder === latestOrderId) {
+
       const status = normalizeText(csoRow[csoStatusIdx]);
+
       if (
         status === "delivered" ||
         status === "order cancelled, not to be reopened"
       ) {
         return; // exclude
       }
+
+      result.push(`${caseId},${latestOrderId}`);
+      return;
     }
 
-    result.push(`${caseId},${orderId}`);
+    // ===== CASE B: Order differs → Replace & clear =====
+    csoRow[csoOrderIdx] = latestOrderId;
+    csoRow[csoStatusIdx] = "";
+    csoRow[3] = "";  // Tracking Number
+    csoRow[4] = "";  // Repair Status
+
+    csoUpdated = true;
+    result.push(`${caseId},${latestOrderId}`);
   });
+
+  // ===== Persist CSO changes if updated =====
+  if (csoUpdated) {
+
+    const writeStore = getStore("readwrite");
+    writeStore.put({
+      id: getTeamKey("CSO Status"),
+      team: currentTeam,
+      sheetName: "CSO Status",
+      rows: cso,
+      lastUpdated: new Date().toISOString()
+    });
+
+    // Refresh UI
+    const dt = dataTablesMap["CSO Status"];
+    dt.clear();
+    cso.forEach(r => dt.row.add(["", ...r]));
+    dt.draw(false);
+  }
 
   return result.join("\n");
 }
@@ -3307,6 +3357,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
