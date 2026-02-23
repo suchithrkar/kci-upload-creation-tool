@@ -1275,6 +1275,8 @@ async function processGNProCSOFile(file) {
   
   const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
   const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
+  const wo = teamData.find(r => r.sheetName === "WO")?.rows || [];
+  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
   const oldCso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
   // Build GNPro CSV map
@@ -1304,20 +1306,40 @@ async function processGNProCSOFile(file) {
   ];
   
   // 2️⃣ Recalculate resolution per case
-  const offsiteCases = repairCaseIds.filter(caseId => {
+  // 🔥 FULL RESOLUTION RECALCULATION (WO + SO + MO)
+  
+  // 1️⃣ Identify repair cases from Dump
+  const repairCaseIds = [
+    ...new Set(
+      dump
+        .filter(r => isRepairResolution(r[dumpResIdx]))
+        .map(r => r[dumpCaseIdx])
+    )
+  ];
+  
+  // 2️⃣ Recalculate resolution per case
+  const recalculatedCases = repairCaseIds.map(caseId => {
     const dumpRow = dumpByCaseId[caseId];
-    if (!dumpRow) return false;
+    if (!dumpRow) return null;
   
     const derivedResolution = getCalculatedResolution(
       caseId,
-      [],            // WO not needed for GNPro
+      wo,
       so,
-      [],            // MO not needed
+      mo,
       dumpRow[dumpResIdx]
     );
   
-    return derivedResolution === "Offsite Solution";
-  });
+    return {
+      caseId,
+      resolution: derivedResolution
+    };
+  }).filter(Boolean);
+  
+  // 3️⃣ Filter only Offsite Solution
+  const offsiteCases = recalculatedCases
+    .filter(c => c.resolution === "Offsite Solution")
+    .map(c => c.caseId);
 
   const finalRows = [];
 
@@ -3369,6 +3391,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
