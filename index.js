@@ -2274,8 +2274,6 @@ async function buildCopyTrackingURLs() {
       ? new Date(matchingSO[soSubmittedIdx])
       : new Date(0);   // fallback if SO not found
   
-    const soDate = new Date(matchingSO[soSubmittedIdx]);
-  
     const url =
       "http://wwwapps.ups.com/WebTracking/processInputRequest" +
       "?TypeOfInquiryNumber=T&InquiryNumber1=" + tracking;
@@ -3473,6 +3471,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
