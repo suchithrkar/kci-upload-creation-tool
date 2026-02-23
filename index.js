@@ -2374,7 +2374,7 @@ async function buildCopyTrackingURLs() {
   // 6️⃣ Return output
   return [...previewMap.entries()]
     .map(([caseId, d]) =>
-      `${caseId} | ${d.orderId} | ${d.url}`
+      `${caseId} | ${d.url}`
     )
     .join("\n");
 }
@@ -3471,6 +3471,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
