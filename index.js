@@ -2006,6 +2006,8 @@ async function buildCopySOOrders() {
 
   const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
   const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
+  const wo = teamData.find(r => r.sheetName === "WO")?.rows || [];
+  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
   let cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
   const dumpIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
@@ -2028,20 +2030,30 @@ async function buildCopySOOrders() {
     )
   ];
 
-  const offsiteCases = repairCaseIds.filter(caseId => {
+  // 🔥 FULL RESOLUTION RECALCULATION (WO + SO + MO)
+  
+  const recalculatedCases = repairCaseIds.map(caseId => {
     const dumpRow = dumpByCaseId[caseId];
-    if (!dumpRow) return false;
-
+    if (!dumpRow) return null;
+  
     const derivedResolution = getCalculatedResolution(
       caseId,
-      [],
+      wo,
       so,
-      [],
+      mo,
       dumpRow[dumpIdx]
     );
-
-    return derivedResolution === "Offsite Solution";
-  });
+  
+    return {
+      caseId,
+      resolution: derivedResolution
+    };
+  }).filter(Boolean);
+  
+  // Now filter only Offsite Solution cases
+  const offsiteCases = recalculatedCases
+    .filter(c => c.resolution === "Offsite Solution")
+    .map(c => c.caseId);
 
   const result = [];
   let csoUpdated = false;
@@ -3357,6 +3369,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
