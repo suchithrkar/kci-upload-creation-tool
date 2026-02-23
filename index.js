@@ -2269,8 +2269,10 @@ async function buildCopyTrackingURLs() {
       s[soCaseIdx] === caseId &&
       stripOrderSuffix(s[soOrderRefIdx]) === normalizedCsoOrderId
     );
-  
-    if (!matchingSO || !matchingSO[soSubmittedIdx]) return;
+    
+    const soDate = matchingSO && matchingSO[soSubmittedIdx]
+      ? new Date(matchingSO[soSubmittedIdx])
+      : new Date(0);   // fallback if SO not found
   
     const soDate = new Date(matchingSO[soSubmittedIdx]);
   
@@ -3471,6 +3473,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
