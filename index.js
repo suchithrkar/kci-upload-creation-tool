@@ -2269,10 +2269,10 @@ async function buildCopyTrackingURLs() {
       s[soCaseIdx] === caseId &&
       stripOrderSuffix(s[soOrderRefIdx]) === normalizedCsoOrderId
     );
-    
-    const soDate = matchingSO && matchingSO[soSubmittedIdx]
-      ? new Date(matchingSO[soSubmittedIdx])
-      : new Date(0);   // fallback if SO not found
+  
+    if (!matchingSO || !matchingSO[soSubmittedIdx]) return;
+  
+    const soDate = new Date(matchingSO[soSubmittedIdx]);
   
     const url =
       "http://wwwapps.ups.com/WebTracking/processInputRequest" +
@@ -3471,6 +3471,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
