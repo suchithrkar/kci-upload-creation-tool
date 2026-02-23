@@ -2186,6 +2186,9 @@ async function buildCopyTrackingURLs() {
   const csoOrderIdx = TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
   const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
   const csoTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+  const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
+  const soOrderRefIdx = TABLE_SCHEMAS["SO"].indexOf("Order Reference ID");
+  const soSubmittedIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
 
   const delCaseIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
   const delOrderIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
@@ -2217,7 +2220,7 @@ async function buildCopyTrackingURLs() {
   });
 
   // 3️⃣ Build MO list
-  const finalMap = new Map(); // caseId → {orderId, url, date}
+  const eligibleMap = new Map(); // caseId → {orderId, url, date}
 
   partsShippedCases.forEach(caseId => {
 
@@ -2242,39 +2245,62 @@ async function buildCopyTrackingURLs() {
 
     if (!item || !item[moItemUrlIdx]) return;
 
-    finalMap.set(caseId, {
+    eligibleMap.set(caseId, {
       orderId,
       url: item[moItemUrlIdx],
       date: new Date(latestMO[moCreatedIdx])
     });
   });
 
-  // 4️⃣ Add CSO delivered (whichever latest wins)
+  // 4️⃣ Add CSO delivered with TRUE date comparison
   cso.forEach(r => {
-
+  
     const caseId = r[csoCaseIdx];
     const status = normalizeText(r[csoStatusIdx]);
     const tracking = r[csoTrackIdx];
-
+  
     if (status !== "delivered" || !tracking) return;
-
-    const orderId = r[csoOrderIdx];
-    const date = new Date(); // no reliable date → treat as latest
-
+  
+    const rawCsoOrderId = r[csoOrderIdx];
+    const normalizedCsoOrderId = stripOrderSuffix(rawCsoOrderId);
+  
+    // 🔎 Find matching SO row
+    const matchingSO = so.find(s =>
+      s[soCaseIdx] === caseId &&
+      stripOrderSuffix(s[soOrderRefIdx]) === normalizedCsoOrderId
+    );
+  
+    if (!matchingSO || !matchingSO[soSubmittedIdx]) return;
+  
+    const soDate = new Date(matchingSO[soSubmittedIdx]);
+  
     const url =
       "http://wwwapps.ups.com/WebTracking/processInputRequest" +
       "?TypeOfInquiryNumber=T&InquiryNumber1=" + tracking;
-
-    if (!finalMap.has(caseId) ||
-        date > finalMap.get(caseId).date) {
-
-      finalMap.set(caseId, {
-        orderId,
+  
+    // If case not yet in map → insert
+    if (!eligibleMap.has(caseId)) {
+      eligibleMap.set(caseId, {
+        orderId: rawCsoOrderId,
         url,
-        date
+        date: soDate
+      });
+      return;
+    }
+  
+    // Compare with existing (MO)
+    const existing = eligibleMap.get(caseId);
+  
+    if (soDate > existing.date) {
+      eligibleMap.set(caseId, {
+        orderId: rawCsoOrderId,
+        url,
+        date: soDate
       });
     }
   });
+
+  const previewMap = new Map(eligibleMap);
 
   // 5️⃣ DELIVERY DETAILS SYNC LOGIC
 
@@ -2287,8 +2313,8 @@ async function buildCopyTrackingURLs() {
     });
   });
 
-  // Process finalMap
-  for (const [caseId, data] of finalMap.entries()) {
+  // Process eligibleMap
+  for (const [caseId, data] of eligibleMap.entries()) {
 
     if (!deliveryMap.has(caseId)) {
       deliveryMap.set(caseId, {
@@ -2305,7 +2331,7 @@ async function buildCopyTrackingURLs() {
       if (existing.status &&
           normalizeText(existing.status) !== "no status found") {
 
-        finalMap.delete(caseId);
+        previewMap.delete(caseId);
       }
 
     } else {
@@ -2318,7 +2344,7 @@ async function buildCopyTrackingURLs() {
 
   // Remove obsolete rows
   for (const caseId of deliveryMap.keys()) {
-    if (!finalMap.has(caseId)) {
+    if (!eligibleMap.has(caseId)) {
       deliveryMap.delete(caseId);
     }
   }
@@ -2346,7 +2372,7 @@ async function buildCopyTrackingURLs() {
   dt.draw(false);
 
   // 6️⃣ Return output
-  return [...finalMap.entries()]
+  return [...previewMap.entries()]
     .map(([caseId, d]) =>
       `${caseId} | ${d.orderId} | ${d.url}`
     )
@@ -3445,6 +3471,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
