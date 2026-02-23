@@ -1295,17 +1295,6 @@ async function processGNProCSOFile(file) {
   const oldStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
   const oldTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
 
-  // 1️⃣ Offsite cases
-  // 1️⃣ Identify repair cases from Dump (case IDs only)
-  const repairCaseIds = [
-    ...new Set(
-      dump
-        .filter(r => isRepairResolution(r[dumpResIdx]))
-        .map(r => r[dumpCaseIdx])
-    )
-  ];
-  
-  // 2️⃣ Recalculate resolution per case
   // 🔥 FULL RESOLUTION RECALCULATION (WO + SO + MO)
   
   // 1️⃣ Identify repair cases from Dump
@@ -3391,6 +3380,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
