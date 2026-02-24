@@ -3016,7 +3016,7 @@ async function buildRepairCases() {
               ?.[9] || ""
           )
         : "",
-      delivery.find(x => x[0] === caseId)?.[1] || "",
+      delivery.find(x => x[0] === caseId)?.[2] || "",
       partNumber,
       partName,
       d[16],
@@ -3460,6 +3460,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
