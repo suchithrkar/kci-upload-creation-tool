@@ -3253,6 +3253,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateProcessButtonState();
 });
 
+document.getElementById("downloadUploadExcelBtn")
+  .addEventListener("click", downloadUploadExcel);
+
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
 
@@ -3461,6 +3464,107 @@ document.getElementById("importBackupInput")
   e.target.value = "";
 });
 
+/* =========================================================
+   DOWNLOAD UPLOAD EXCEL
+========================================================= */
+
+async function downloadUploadExcel() {
+  try {
+    const team = getCurrentTeam();
+    if (!team) {
+      alert("No team selected.");
+      return;
+    }
+
+    const dbData = await getTeamData(team);
+    if (!dbData) {
+      alert("No data found for this team.");
+      return;
+    }
+
+    const dumpData = dbData.dumpSheet || [];
+    const repairCasesData = dbData.repairCasesSheet || [];
+    const closedCasesData = dbData.closedCasesDataSheet || [];
+
+    /* -----------------------------------------
+       STEP 1 — Build Repair Case ID List
+    ------------------------------------------*/
+
+    const eligibleResolutions = [
+      "Parts Shipped",
+      "Offsite Solution",
+      "Onsite Solution"
+    ];
+
+    const caseIdIndex =
+      TABLE_SCHEMAS.dumpSheet.indexOf("Case ID");
+
+    const resolutionIndex =
+      TABLE_SCHEMAS.dumpSheet.indexOf("Case Resolution Code");
+
+    const repairCaseIds = new Set();
+
+    dumpData.forEach(row => {
+      const resolution = row[resolutionIndex];
+      if (eligibleResolutions.includes(resolution)) {
+        repairCaseIds.add(row[caseIdIndex]);
+      }
+    });
+
+    /* -----------------------------------------
+       STEP 2 — Filter Repair Cases Sheet
+    ------------------------------------------*/
+
+    const repairCaseIdIndex =
+      TABLE_SCHEMAS.repairCasesSheet.indexOf("Case ID");
+
+    const filteredRepairCases = repairCasesData.filter(row =>
+      repairCaseIds.has(row[repairCaseIdIndex])
+    );
+
+    /* -----------------------------------------
+       STEP 3 — Build Excel Workbook
+    ------------------------------------------*/
+
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1 — Repair Cases
+    const repairSheetData = [
+      TABLE_SCHEMAS.repairCasesSheet,
+      ...filteredRepairCases
+    ];
+
+    const wsRepair = XLSX.utils.aoa_to_sheet(repairSheetData);
+    XLSX.utils.book_append_sheet(wb, wsRepair, "Repair Cases");
+
+    // Sheet 2 — Closed Cases Data (Full Table)
+    const closedSheetData = [
+      TABLE_SCHEMAS.closedCasesDataSheet,
+      ...closedCasesData
+    ];
+
+    const wsClosed = XLSX.utils.aoa_to_sheet(closedSheetData);
+    XLSX.utils.book_append_sheet(wb, wsClosed, "Closed Cases Data");
+
+    /* -----------------------------------------
+       STEP 4 — File Name
+    ------------------------------------------*/
+
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, "0");
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const yyyy = today.getFullYear();
+
+    const fileName =
+      `KCI_Upload_File_${team}_${dd}-${mm}-${yyyy}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+
+  } catch (err) {
+    console.error("Download Upload Excel failed:", err);
+    alert("Failed to generate Excel file.");
+  }
+}
 
 
 
