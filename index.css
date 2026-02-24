@@ -260,6 +260,13 @@ table.dataTable tbody td {
   border-top: 1px solid #d6d6d6;
 }
 
+/* Right aligned action bar buttons */
+.action-bar-right {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+}
+
 .action-bar button {
   background: #151923;
   color: #fff;
@@ -1528,6 +1535,7 @@ header .team-selector .cc-agent-toggle {
 .team-confirm-inline:hover span {
   color: #1b5e20;
 }
+
 
 
 
