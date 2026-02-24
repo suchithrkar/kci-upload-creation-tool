@@ -3465,86 +3465,95 @@ document.getElementById("importBackupInput")
 });
 
 /* =========================================================
-   DOWNLOAD UPLOAD EXCEL
+   DOWNLOAD UPLOAD EXCEL (CORRECTED FOR YOUR ARCHITECTURE)
 ========================================================= */
 
 async function downloadUploadExcel() {
+  if (!requireTeamSelected()) return;
+
   try {
-    const team = getCurrentTeam();
-    if (!team) {
-      alert("No team selected.");
+    const store = getStore("readonly");
+    const allData = await new Promise(res => {
+      const req = store.getAll();
+      req.onsuccess = () => res(req.result);
+    });
+
+    const teamData = allData.filter(r => r.team === currentTeam);
+
+    const dump =
+      teamData.find(r => r.sheetName === "Dump")?.rows || [];
+
+    const repairCases =
+      teamData.find(r => r.sheetName === "Repair Cases")?.rows || [];
+
+    const closedCases =
+      teamData.find(r => r.sheetName === "Closed Cases Data")?.rows || [];
+
+    if (!dump.length) {
+      alert("Dump sheet data not available.");
       return;
     }
-
-    const dbData = await getTeamData(team);
-    if (!dbData) {
-      alert("No data found for this team.");
-      return;
-    }
-
-    const dumpData = dbData.dumpSheet || [];
-    const repairCasesData = dbData.repairCasesSheet || [];
-    const closedCasesData = dbData.closedCasesDataSheet || [];
 
     /* -----------------------------------------
        STEP 1 — Build Repair Case ID List
     ------------------------------------------*/
 
-    const eligibleResolutions = [
-      "Parts Shipped",
-      "Offsite Solution",
-      "Onsite Solution"
-    ];
+    const caseIdx =
+      TABLE_SCHEMAS["Dump"].indexOf("Case ID");
 
-    const caseIdIndex =
-      TABLE_SCHEMAS.dumpSheet.indexOf("Case ID");
-
-    const resolutionIndex =
-      TABLE_SCHEMAS.dumpSheet.indexOf("Case Resolution Code");
+    const resolutionIdx =
+      TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
 
     const repairCaseIds = new Set();
 
-    dumpData.forEach(row => {
-      const resolution = row[resolutionIndex];
-      if (eligibleResolutions.includes(resolution)) {
-        repairCaseIds.add(row[caseIdIndex]);
+    dump.forEach(row => {
+      const resolution = row[resolutionIdx];
+      if (isRepairResolution(resolution)) {
+        repairCaseIds.add(row[caseIdx]);
       }
     });
 
     /* -----------------------------------------
-       STEP 2 — Filter Repair Cases Sheet
+       STEP 2 — Filter Repair Cases
     ------------------------------------------*/
 
-    const repairCaseIdIndex =
-      TABLE_SCHEMAS.repairCasesSheet.indexOf("Case ID");
+    const repairCaseIdIdx =
+      TABLE_SCHEMAS["Repair Cases"].indexOf("Case ID");
 
-    const filteredRepairCases = repairCasesData.filter(row =>
-      repairCaseIds.has(row[repairCaseIdIndex])
-    );
+    const filteredRepairCases =
+      repairCases.filter(row =>
+        repairCaseIds.has(row[repairCaseIdIdx])
+      );
 
     /* -----------------------------------------
-       STEP 3 — Build Excel Workbook
+       STEP 3 — Build Excel
     ------------------------------------------*/
 
     const wb = XLSX.utils.book_new();
 
     // Sheet 1 — Repair Cases
-    const repairSheetData = [
-      TABLE_SCHEMAS.repairCasesSheet,
+    const repairSheet = [
+      TABLE_SCHEMAS["Repair Cases"],
       ...filteredRepairCases
     ];
 
-    const wsRepair = XLSX.utils.aoa_to_sheet(repairSheetData);
-    XLSX.utils.book_append_sheet(wb, wsRepair, "Repair Cases");
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet(repairSheet),
+      "Repair Cases"
+    );
 
-    // Sheet 2 — Closed Cases Data (Full Table)
-    const closedSheetData = [
-      TABLE_SCHEMAS.closedCasesDataSheet,
-      ...closedCasesData
+    // Sheet 2 — Closed Cases Data
+    const closedSheet = [
+      TABLE_SCHEMAS["Closed Cases Data"],
+      ...closedCases
     ];
 
-    const wsClosed = XLSX.utils.aoa_to_sheet(closedSheetData);
-    XLSX.utils.book_append_sheet(wb, wsClosed, "Closed Cases Data");
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet(closedSheet),
+      "Closed Cases Data"
+    );
 
     /* -----------------------------------------
        STEP 4 — File Name
@@ -3556,7 +3565,7 @@ async function downloadUploadExcel() {
     const yyyy = today.getFullYear();
 
     const fileName =
-      `KCI_Upload_File_${team}_${dd}-${mm}-${yyyy}.xlsx`;
+      `KCI_Upload_File_${currentTeam}_${dd}-${mm}-${yyyy}.xlsx`;
 
     XLSX.writeFile(wb, fileName);
 
@@ -3565,32 +3574,3 @@ async function downloadUploadExcel() {
     alert("Failed to generate Excel file.");
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
