@@ -1343,13 +1343,20 @@ async function processGNProCSOFile(file) {
       total,
       `Processing CSO cases (${processed}/${total})`
     );
-    const soRows = so.filter(r => r[soCaseIdx] === caseId);
-    if (!soRows.length) return;
-
-    const latestSO = soRows.sort((a, b) =>
+    // 🔎 Filter valid SO rows (must have date + order id)
+    const validSoRows = so.filter(r =>
+      r[soCaseIdx] === caseId &&
+      r[soDateIdx] &&
+      r[soOrderIdx]
+    );
+    
+    if (!validSoRows.length) return;
+    
+    // Sort by Date and Time Submitted DESC
+    const latestSO = validSoRows.sort((a, b) =>
       new Date(b[soDateIdx]) - new Date(a[soDateIdx])
     )[0];
-
+    
     const cso = stripOrderSuffix(latestSO[soOrderIdx]);
 
     let status = "Not Found";
@@ -2072,15 +2079,21 @@ async function buildCopySOOrders() {
 
   offsiteCases.forEach(caseId => {
 
-    const soRows = so.filter(r => r[soCaseIdx] === caseId);
-    if (!soRows.length) return;
-
-    const latest = soRows.sort((a, b) =>
+    // 🔎 Filter valid SO rows (must have date + order id)
+    const validSoRows = so.filter(r =>
+      r[soCaseIdx] === caseId &&
+      r[soDateIdx] &&
+      r[soOrderIdx]
+    );
+    
+    if (!validSoRows.length) return;
+    
+    // Sort by Date and Time Submitted DESC
+    const latest = validSoRows.sort((a, b) =>
       new Date(b[soDateIdx]) - new Date(a[soDateIdx])
     )[0];
-
+    
     const latestOrderId = stripOrderSuffix(latest[soOrderIdx]);
-    if (!latestOrderId) return;
 
     const matchingRows = cso.filter(r => r[csoCaseIdx] === caseId);
 
@@ -3447,6 +3460,7 @@ document.getElementById("importBackupInput")
 
   e.target.value = "";
 });
+
 
 
 
