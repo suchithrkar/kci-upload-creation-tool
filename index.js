@@ -2965,7 +2965,7 @@ async function buildRepairCases() {
       calculatedResolution === "Offsite Solution" &&
       normalizeText(cso.find(c => c[0] === caseId)?.[4])
         .includes("product returned unrepaired to customer")
-        ? "True"
+        ? "Yes"
         : "";
 
     let partNumber = "";
@@ -3574,3 +3574,4 @@ async function downloadUploadExcel() {
     alert("Failed to generate Excel file.");
   }
 }
+
