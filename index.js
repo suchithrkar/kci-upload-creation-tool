@@ -631,7 +631,8 @@ function cleanCell(value) {
   str = str.replace(/\u00A0/g, ' ');
 
   // Remove hidden control characters (SAP / Excel junk)
-  str = str.replace(/[\u0000-\u001F\u007F]/g, '');
+  // Preserve line breaks, remove only unwanted control chars
+  str = str.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
 
   return str.trim();
 }
