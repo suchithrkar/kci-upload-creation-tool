@@ -2987,10 +2987,7 @@ async function buildRepairCases() {
           partNumber = item[2] || "";
     
           if (item[3]) {
-            const idx = item[3].indexOf("-");
-            partName = idx >= 0
-              ? item[3].substring(idx + 1).trim()
-              : item[3].trim();
+            partName = String(item[3] || "").trim();
           }
         }
       }
