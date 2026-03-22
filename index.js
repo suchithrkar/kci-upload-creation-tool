@@ -643,6 +643,51 @@ function normalizeText(val) {
     .toLowerCase();
 }
 
+async function removeRepairCasesByCountry(targetCountry) {
+  if (!targetCountry) return;
+
+  const store = getStore("readonly");
+  const all = await new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const teamData = all.filter(r => r.team === currentTeam);
+  const repairRecord = teamData.find(r => r.sheetName === "Repair Cases");
+
+  if (!repairRecord) {
+    console.log("No Repair Cases found");
+    return;
+  }
+
+  const countryIdx = TABLE_SCHEMAS["Repair Cases"].indexOf("Country");
+
+  const before = repairRecord.rows.length;
+
+  const filteredRows = repairRecord.rows.filter(r =>
+    normalizeText(r[countryIdx]) !== normalizeText(targetCountry)
+  );
+
+  const removed = before - filteredRows.length;
+
+  console.log(`Removed ${removed} rows for country: ${targetCountry}`);
+
+  // UI update
+  const dt = dataTablesMap["Repair Cases"];
+  dt.clear();
+  filteredRows.forEach(r => dt.row.add(["", ...r]));
+  dt.draw(false);
+
+  // DB update
+  getStore("readwrite").put({
+    id: getTeamKey("Repair Cases"),
+    team: currentTeam,
+    sheetName: "Repair Cases",
+    rows: filteredRows,
+    lastUpdated: new Date().toISOString()
+  });
+}
+
 function buildDumpCaseMap(dump, caseIdx) {
   const map = Object.create(null);
   dump.forEach(r => {
@@ -3571,50 +3616,5 @@ async function downloadUploadExcel() {
     console.error("Download Upload Excel failed:", err);
     alert("Failed to generate Excel file.");
   }
-}
-
-async function removeRepairCasesByCountry(targetCountry) {
-  if (!targetCountry) return;
-
-  const store = getStore("readonly");
-  const all = await new Promise(res => {
-    const req = store.getAll();
-    req.onsuccess = () => res(req.result);
-  });
-
-  const teamData = all.filter(r => r.team === currentTeam);
-  const repairRecord = teamData.find(r => r.sheetName === "Repair Cases");
-
-  if (!repairRecord) {
-    console.log("No Repair Cases found");
-    return;
-  }
-
-  const countryIdx = TABLE_SCHEMAS["Repair Cases"].indexOf("Country");
-
-  const before = repairRecord.rows.length;
-
-  const filteredRows = repairRecord.rows.filter(r =>
-    normalizeText(r[countryIdx]) !== normalizeText(targetCountry)
-  );
-
-  const removed = before - filteredRows.length;
-
-  console.log(`Removed ${removed} rows for country: ${targetCountry}`);
-
-  // UI update
-  const dt = dataTablesMap["Repair Cases"];
-  dt.clear();
-  filteredRows.forEach(r => dt.row.add(["", ...r]));
-  dt.draw(false);
-
-  // DB update
-  getStore("readwrite").put({
-    id: getTeamKey("Repair Cases"),
-    team: currentTeam,
-    sheetName: "Repair Cases",
-    rows: filteredRows,
-    lastUpdated: new Date().toISOString()
-  });
 }
 
