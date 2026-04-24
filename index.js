@@ -783,7 +783,7 @@ function buildReadyForClosureList(caseIds, repairRows) {
 
     if (
       res === "Onsite Solution" &&
-      ["closed - cancelled", "closed - posted", "open - completed"]
+      ["closed - canceled", "closed - posted", "open - completed"]
         .includes(onsite)
     ) return true;
 
