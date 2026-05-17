@@ -852,7 +852,7 @@ table.dataTable th {
   width: 100%;
   box-sizing: border-box;
 
-  align-items: start;
+  align-items: stretch;
 }
 
 /* Shared column styling */
