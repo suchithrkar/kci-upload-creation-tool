@@ -107,7 +107,9 @@ const TABLE_SCHEMAS = {
     "Case ID",
     "Case Resolution Code",
     "Latest Order",
-    "Order Status"
+    "Order Status",
+    "Workgroup",
+    "Team"
   ],
 
   "CSO Status": [
@@ -2095,11 +2097,20 @@ async function buildSortedTable() {
   const mo =
     teamData.find(r => r.sheetName === "MO")?.rows || [];
 
+  const workgroupMap =
+    teamData.find(r => r.sheetName === "WORKGROUP_MAP")
+      ?.data || [];
+
   const dumpCaseIdx =
     TABLE_SCHEMAS["Dump"].indexOf("Case ID");
 
   const dumpResolutionIdx =
     TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
+
+  const dumpWorkgroupIdx =
+    TABLE_SCHEMAS["Dump"].indexOf(
+      "Workgroup (Owning User) (User)"
+    );
 
   const validResolutions = [
     "onsite solution",
@@ -2130,6 +2141,16 @@ async function buildSortedTable() {
         mo,
         dumpResolution
       );
+
+    const workgroup =
+      row[dumpWorkgroupIdx] || "";
+    
+    const assignedTeam =
+      workgroupMap.find(team =>
+        team.workgroups.some(w =>
+          normalizeText(w) === normalizeText(workgroup)
+        )
+      )?.name || "";
   
     let latestOrder = "";
     let orderStatus = "";
@@ -2202,7 +2223,9 @@ async function buildSortedTable() {
       caseId,
       calculatedResolution,
       latestOrder,
-      orderStatus
+      orderStatus,
+      workgroup,
+      assignedTeam
     ]);
   });
 
