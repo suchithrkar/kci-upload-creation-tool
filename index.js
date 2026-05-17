@@ -105,7 +105,9 @@ const TABLE_SCHEMAS = {
 
   "Sorted": [
     "Case ID",
-    "Case Resolution Code"
+    "Case Resolution Code",
+    "Latest Order",
+    "Order Status"
   ],
 
   "CSO Status": [
@@ -2104,12 +2106,12 @@ async function buildSortedTable() {
   ];
 
   const finalRows = [];
-
+  
   dump.forEach(row => {
-
+  
     const caseId = row[dumpCaseIdx];
     const dumpResolution = row[dumpResolutionIdx];
-
+  
     if (
       !validResolutions.includes(
         normalizeText(dumpResolution)
@@ -2117,7 +2119,7 @@ async function buildSortedTable() {
     ) {
       return;
     }
-
+  
     const calculatedResolution =
       getCalculatedResolution(
         caseId,
@@ -2126,10 +2128,79 @@ async function buildSortedTable() {
         mo,
         dumpResolution
       );
-
+  
+    let latestOrder = "";
+    let orderStatus = "";
+  
+    // =====================================
+    // ONSITE SOLUTION → WO
+    // =====================================
+  
+    if (calculatedResolution === "Onsite Solution") {
+  
+      const validWOs = wo.filter(r =>
+        r[0] === caseId &&
+        r[1] &&
+        r[6]
+      );
+  
+      if (validWOs.length) {
+  
+        validWOs.sort((a, b) =>
+          new Date(b[6]) - new Date(a[6])
+        );
+  
+        const latestWO = validWOs[0];
+  
+        latestOrder = latestWO[1] || "";
+        orderStatus = latestWO[5] || "";
+      }
+    }
+  
+    // =====================================
+    // OFFSITE SOLUTION → SO
+    // =====================================
+  
+    else if (calculatedResolution === "Offsite Solution") {
+  
+      const validSOs = so.filter(r =>
+        r[0] === caseId &&
+        r[4] &&
+        r[2]
+      );
+  
+      if (validSOs.length) {
+  
+        validSOs.sort((a, b) =>
+          new Date(b[2]) - new Date(a[2])
+        );
+  
+        const latestSO = validSOs[0];
+  
+        latestOrder = latestSO[4] || "";
+        orderStatus = "";
+      }
+    }
+  
+    // =====================================
+    // PARTS SHIPPED → MO
+    // =====================================
+  
+    else if (calculatedResolution === "Parts Shipped") {
+  
+      const latestMO = getLatestMO(caseId, mo);
+  
+      if (latestMO) {
+        latestOrder = latestMO[0] || "";
+        orderStatus = latestMO[3] || "";
+      }
+    }
+  
     finalRows.push([
       caseId,
-      calculatedResolution
+      calculatedResolution,
+      latestOrder,
+      orderStatus
     ]);
   });
 
