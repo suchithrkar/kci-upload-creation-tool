@@ -269,7 +269,9 @@ async function setCurrentTeam(team) {
 
   updateProcessButtonState();
   // ✅ ENABLE action bar buttons once team is selected
-  document.querySelectorAll(".action-bar button").forEach(btn => {
+  document.querySelectorAll(
+    ".action-bar button, #workgroupBtn"
+  ).forEach(btn => {
     btn.disabled = false;
   });
 }
@@ -458,7 +460,7 @@ async function deleteTeam(team) {
       );
     
       document.querySelectorAll(
-        ".action-bar button, #processBtn"
+        ".action-bar button, #processBtn, #workgroupBtn"
       ).forEach(btn => btn.disabled = true);
     
       // Explicitly refresh dropdown (now empty)
@@ -3554,7 +3556,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (!lastTeam) {
     document.querySelectorAll(
-      ".action-bar button, #processBtn"
+      ".action-bar button, #processBtn, #workgroupBtn"
     ).forEach(btn => btn.disabled = true);
   }
   
