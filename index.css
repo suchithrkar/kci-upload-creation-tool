@@ -268,6 +268,7 @@ table.dataTable tbody td {
   gap: 12px;
 }
 
+.upload-box button,
 .action-bar button {
   background: #151923;
   color: #fff;
