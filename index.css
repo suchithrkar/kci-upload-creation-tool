@@ -261,7 +261,8 @@ table.dataTable tbody td {
 }
 
 /* Right aligned action bar buttons */
-.action-bar-right {
+.action-bar-right,
+.upload-bar-right {
   margin-left: auto;
   display: flex;
   gap: 12px;
