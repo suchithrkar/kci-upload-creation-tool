@@ -44,7 +44,8 @@ const TABLE_SCHEMAS = {
     "Queue",
     "OTC Code",
     "Product Serial Number",
-    "ProductName"
+    "ProductName",
+    "Workgroup (Owning User) (User)"
   ],
 
   "WO": [
@@ -187,7 +188,8 @@ const DUMP_HEADER_DISPLAY_MAP = {
   "Full Name (Primary Contact) (Contact)": "Customer Name",
   "Full Name (Owning User) (User)": "Case Owner",
   "ProductName": "Product Name",
-  "Product Serial Number": "Serial Number"
+  "Product Serial Number": "Serial Number",
+  "Workgroup (Owning User) (User)": "Workgroup"
 };
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
