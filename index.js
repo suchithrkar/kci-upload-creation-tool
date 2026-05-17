@@ -2950,69 +2950,104 @@ function addMarketBlock(name = "", countries = []) {
 
 function renderWorkgroupModal(data = []) {
   const container = document.getElementById("workgroupContainer");
+
   container.innerHTML = "";
 
   if (!data.length) {
     addWorkgroupBlock();
-    container.firstChild.classList.add("placeholder");
   } else {
     data.forEach(w =>
-      addWorkgroupBlock(w.name, w.workgroups)
+      addWorkgroupBlock(
+        w.name,
+        w.workgroups
+      )
     );
   }
-
-  adjustMappingModalWidth(
-    "workgroupContainer",
-    "workgroupModal"
-  );
 }
 
 function addWorkgroupBlock(name = "", workgroups = []) {
+
   const container =
     document.getElementById("workgroupContainer");
 
-  const block = document.createElement("div");
-  block.className = "mapping-block";
+  const card = document.createElement("div");
+  card.className = "workgroup-team-card";
 
-  block.innerHTML = `
-    <h4>
-      Workgroup Team:
-      <input value="${name}">
-      <button onclick="this.closest('.mapping-block').remove()">✕</button>
-    </h4>
+  card.innerHTML = `
+    <div class="workgroup-col workgroup-team-name">
+      <input
+        type="text"
+        placeholder="Workgroup Team Name"
+        value="${name}"
+      >
+    </div>
 
-    <div class="workgroups"></div>
+    <div class="workgroup-col">
+      <div class="workgroup-list"></div>
 
-    <button class="add-btn">
-      + Add Workgroup
-    </button>
+      <button class="workgroup-add-btn">
+        + Add Workgroup
+      </button>
+    </div>
+
+    <div class="workgroup-col workgroup-actions">
+
+      <button class="workgroup-delete-team-btn">
+        Delete Team
+      </button>
+
+    </div>
   `;
 
-  const div = block.querySelector(".workgroups");
-  const addBtn = block.querySelector(".add-btn");
+  const workgroupList =
+    card.querySelector(".workgroup-list");
 
-  function addWorkgroup(val = "") {
+  const addBtn =
+    card.querySelector(".workgroup-add-btn");
+
+  const deleteBtn =
+    card.querySelector(".workgroup-delete-team-btn");
+
+  function addWorkgroupRow(value = "") {
+
     const row = document.createElement("div");
-    row.className = "mapping-row";
+    row.className = "workgroup-item";
 
     row.innerHTML = `
-      <input value="${val}">
-      <button onclick="this.parentElement.remove()">✕</button>
+      <input
+        type="text"
+        value="${value}"
+        placeholder="Workgroup Name"
+      >
+
+      <button class="workgroup-remove-btn">
+        ✕
+      </button>
     `;
 
-    div.appendChild(row);
+    row.querySelector(".workgroup-remove-btn")
+      .onclick = () => {
+        row.remove();
+      };
+
+    workgroupList.appendChild(row);
   }
 
-  workgroups.forEach(addWorkgroup);
+  if (workgroups.length) {
+    workgroups.forEach(addWorkgroupRow);
+  } else {
+    addWorkgroupRow();
+  }
 
-  addBtn.onclick = () => addWorkgroup();
+  addBtn.onclick = () => {
+    addWorkgroupRow();
+  };
 
-  container.appendChild(block);
+  deleteBtn.onclick = () => {
+    card.remove();
+  };
 
-  adjustMappingModalWidth(
-    "workgroupContainer",
-    "workgroupModal"
-  );
+  container.appendChild(card);
 }
 
 document.getElementById("saveTlBtn").onclick = () => {
@@ -3067,24 +3102,24 @@ document.getElementById("saveMarketBtn").onclick = () => {
 
 document.getElementById("saveWorkgroupBtn").onclick = () => {
 
-  const blocks =
+  const cards =
     document.querySelectorAll(
-      "#workgroupContainer .mapping-block"
+      "#workgroupContainer .workgroup-team-card"
     );
 
   const data = [];
 
-  blocks.forEach(b => {
+  cards.forEach(card => {
 
     const name =
-      b.querySelector("h4 input")
-        .value
-        .trim();
+      card.querySelector(
+        ".workgroup-team-name input"
+      ).value.trim();
 
     if (!name) return;
 
     const workgroups =
-      [...b.querySelectorAll(".mapping-row input")]
+      [...card.querySelectorAll(".workgroup-item input")]
         .map(i => i.value.trim())
         .filter(Boolean);
 
@@ -3137,14 +3172,6 @@ document.getElementById("addMarketBtn").onclick = () => {
 };
 
 document.getElementById("addWorkgroupBtn").onclick = () => {
-
-  const container =
-    document.getElementById("workgroupContainer");
-
-  container
-    .querySelector(".placeholder")
-    ?.remove();
-
   addWorkgroupBlock();
 };
 
