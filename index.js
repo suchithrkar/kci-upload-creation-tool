@@ -2946,6 +2946,73 @@ function addMarketBlock(name = "", countries = []) {
   adjustMappingModalWidth("marketContainer", "marketModal");
 }
 
+function renderWorkgroupModal(data = []) {
+  const container = document.getElementById("workgroupContainer");
+  container.innerHTML = "";
+
+  if (!data.length) {
+    addWorkgroupBlock();
+    container.firstChild.classList.add("placeholder");
+  } else {
+    data.forEach(w =>
+      addWorkgroupBlock(w.name, w.workgroups)
+    );
+  }
+
+  adjustMappingModalWidth(
+    "workgroupContainer",
+    "workgroupModal"
+  );
+}
+
+function addWorkgroupBlock(name = "", workgroups = []) {
+  const container =
+    document.getElementById("workgroupContainer");
+
+  const block = document.createElement("div");
+  block.className = "mapping-block";
+
+  block.innerHTML = `
+    <h4>
+      Workgroup Team:
+      <input value="${name}">
+      <button onclick="this.closest('.mapping-block').remove()">✕</button>
+    </h4>
+
+    <div class="workgroups"></div>
+
+    <button class="add-btn">
+      + Add Workgroup
+    </button>
+  `;
+
+  const div = block.querySelector(".workgroups");
+  const addBtn = block.querySelector(".add-btn");
+
+  function addWorkgroup(val = "") {
+    const row = document.createElement("div");
+    row.className = "mapping-row";
+
+    row.innerHTML = `
+      <input value="${val}">
+      <button onclick="this.parentElement.remove()">✕</button>
+    `;
+
+    div.appendChild(row);
+  }
+
+  workgroups.forEach(addWorkgroup);
+
+  addBtn.onclick = () => addWorkgroup();
+
+  container.appendChild(block);
+
+  adjustMappingModalWidth(
+    "workgroupContainer",
+    "workgroupModal"
+  );
+}
+
 document.getElementById("saveTlBtn").onclick = () => {
   const blocks = document.querySelectorAll("#tlContainer .mapping-block");
   const data = [];
@@ -2996,6 +3063,47 @@ document.getElementById("saveMarketBtn").onclick = () => {
   closeModal("marketModal");
 };
 
+document.getElementById("saveWorkgroupBtn").onclick = () => {
+
+  const blocks =
+    document.querySelectorAll(
+      "#workgroupContainer .mapping-block"
+    );
+
+  const data = [];
+
+  blocks.forEach(b => {
+
+    const name =
+      b.querySelector("h4 input")
+        .value
+        .trim();
+
+    if (!name) return;
+
+    const workgroups =
+      [...b.querySelectorAll(".mapping-row input")]
+        .map(i => i.value.trim())
+        .filter(Boolean);
+
+    data.push({
+      name,
+      workgroups
+    });
+
+  });
+
+  getStore("readwrite").put({
+    id: getTeamKey("WORKGROUP_MAP"),
+    team: currentTeam,
+    sheetName: "WORKGROUP_MAP",
+    data,
+    lastUpdated: new Date().toISOString()
+  });
+
+  closeModal("workgroupModal");
+};
+
 document.getElementById("tlBtn").onclick = async () => {
   if (!requireTeamSelected()) return;
   const req = getStore().get(getTeamKey("TL_MAP"));
@@ -3024,6 +3132,18 @@ document.getElementById("addMarketBtn").onclick = () => {
   const container = document.getElementById("marketContainer");
   container.querySelector(".placeholder")?.remove();
   addMarketBlock();
+};
+
+document.getElementById("addWorkgroupBtn").onclick = () => {
+
+  const container =
+    document.getElementById("workgroupContainer");
+
+  container
+    .querySelector(".placeholder")
+    ?.remove();
+
+  addWorkgroupBlock();
 };
 
 document.getElementById("closedCasesReportBtn")
@@ -3465,6 +3585,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 document.getElementById("downloadUploadExcelBtn")
   .addEventListener("click", downloadUploadExcel);
+
+document.getElementById("workgroupBtn").onclick = async () => {
+  if (!requireTeamSelected()) return;
+
+  const req = getStore().get(getTeamKey("WORKGROUP_MAP"));
+
+  req.onsuccess = () => {
+    renderWorkgroupModal(req.result?.data || []);
+    openModal("workgroupModal");
+  };
+};
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
