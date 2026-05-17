@@ -103,6 +103,11 @@ const TABLE_SCHEMAS = {
     "OTC Code"
   ],
 
+  "Sorted": [
+    "Case ID",
+    "Case Resolution Code"
+  ],
+
   "CSO Status": [
     "Case ID",
     "CSO",
@@ -972,13 +977,13 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     const store = getStore("readwrite");
     
     // 🔥 HARD DELETE old KCI sheets from IndexedDB
-    ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"].forEach(sheet => {
+    ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases", "Sorted"].forEach(sheet => {
       store.delete(getTeamKey(sheet));
       dataTablesMap[sheet]?.clear().draw(false);
     });
     
     await processExcelFile(kciFile, [
-      "Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"
+      "Dump", "WO", "MO", "MO Items", "SO", "Closed Cases", "Sorted"
     ]);
   
     kciFile = null;
@@ -1214,6 +1219,7 @@ function processExcelFile(file, allowedSheets) {
       };
 
     await buildSheetTables(filteredWorkbook);
+    await buildSortedTable();
     resolve();
     };
 
@@ -2060,6 +2066,94 @@ function getCalculatedResolution(caseId, wo, so, mo, dumpResolution) {
   if (latest.type === "MO") return "Parts Shipped";
 
   return dumpResolution;
+}
+
+async function buildSortedTable() {
+
+  const store = getStore("readonly");
+
+  const all = await new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const teamData = all.filter(r => r.team === currentTeam);
+
+  const dump =
+    teamData.find(r => r.sheetName === "Dump")?.rows || [];
+
+  const wo =
+    teamData.find(r => r.sheetName === "WO")?.rows || [];
+
+  const so =
+    teamData.find(r => r.sheetName === "SO")?.rows || [];
+
+  const mo =
+    teamData.find(r => r.sheetName === "MO")?.rows || [];
+
+  const dumpCaseIdx =
+    TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+
+  const dumpResolutionIdx =
+    TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
+
+  const validResolutions = [
+    "onsite solution",
+    "offsite solution",
+    "parts shipped"
+  ];
+
+  const finalRows = [];
+
+  dump.forEach(row => {
+
+    const caseId = row[dumpCaseIdx];
+    const dumpResolution = row[dumpResolutionIdx];
+
+    if (
+      !validResolutions.includes(
+        normalizeText(dumpResolution)
+      )
+    ) {
+      return;
+    }
+
+    const calculatedResolution =
+      getCalculatedResolution(
+        caseId,
+        wo,
+        so,
+        mo,
+        dumpResolution
+      );
+
+    finalRows.push([
+      caseId,
+      calculatedResolution
+    ]);
+  });
+
+  // ===== UI UPDATE =====
+
+  const dt = dataTablesMap["Sorted"];
+
+  dt.clear();
+
+  finalRows.forEach(r => {
+    dt.row.add(["", ...r]);
+  });
+
+  dt.draw(false);
+
+  // ===== DB SAVE =====
+
+  getStore("readwrite").put({
+    id: getTeamKey("Sorted"),
+    team: currentTeam,
+    sheetName: "Sorted",
+    rows: finalRows,
+    lastUpdated: new Date().toISOString()
+  });
 }
 
 async function buildCopySOOrders() {
