@@ -62,6 +62,10 @@
       </div>
 
       <button id="processBtn" disabled>Process Excel</button>
+
+      <span class="upload-bar-right">
+        <button id="workgroupBtn">Workgroups</button>
+      </span>
     </div>
 
     <div class="action-bar">
@@ -136,6 +140,30 @@
         <button id="saveMarketBtn">Save</button>
         <button onclick="closeModal('marketModal')">Close</button>
       </div>
+    </div>
+  </div>
+
+  <div id="workgroupModal" class="modal-overlay" style="display:none;">
+    <div class="modal modal-polished modal-medium">
+  
+      <h3>Workgroup Assignment</h3>
+  
+      <div class="tl-market-scroll">
+        <div id="workgroupContainer" class="mapping-grid"></div>
+  
+        <button class="add-btn" id="addWorkgroupBtn">
+          + Add Workgroup Team
+        </button>
+      </div>
+  
+      <div class="modal-actions">
+        <button id="saveWorkgroupBtn">Save</button>
+  
+        <button onclick="closeModal('workgroupModal')">
+          Close
+        </button>
+      </div>
+  
     </div>
   </div>
 
