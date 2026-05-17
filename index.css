@@ -581,11 +581,6 @@ table.dataTable th {
   max-width: none;
 }
 
-#workgroupModal .modal {
-  width: 50vw;
-  max-width: 50vw;
-}
-
 .modal-large {
   width: 95%;
   max-width: 1200px;
@@ -824,8 +819,11 @@ table.dataTable th {
 ========================================================= */
 
 #workgroupModal .modal {
-  width: 1100px;
-  max-width: calc(100vw - 80px);
+  width: 50vw;
+
+  min-width: 900px;
+  max-width: 1400px;
+
   max-height: 85vh;
 
   display: flex;
@@ -846,7 +844,10 @@ table.dataTable th {
   background: #fff;
 
   display: grid;
-  grid-template-columns: 220px 1fr auto;
+  grid-template-columns:
+    minmax(180px, 22%)
+    minmax(320px, 1fr)
+    auto;
 
   width: 100%;
   box-sizing: border-box;
@@ -865,12 +866,26 @@ table.dataTable th {
 
 /* Vertical separators */
 .workgroup-col:not(:last-child) {
-  border-right: 1px solid #e2e2e2;
+  position: relative;
+}
+
+.workgroup-col:not(:last-child)::after {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  right: 0;
+  bottom: 0;
+
+  width: 1px;
+  background: #e2e2e2;
 }
 
 /* Team name column */
 .workgroup-team-name input {
-  width: 100%;
+  width: min(100%, 240px);
+
   box-sizing: border-box;
 
   font-size: 12px;
@@ -894,6 +909,10 @@ table.dataTable th {
 /* Input */
 .workgroup-item input {
   flex: 1;
+
+  min-width: 180px;
+  width: auto;
+
   box-sizing: border-box;
 }
 
