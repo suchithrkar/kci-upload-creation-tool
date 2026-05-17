@@ -983,7 +983,7 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     });
     
     await processExcelFile(kciFile, [
-      "Dump", "WO", "MO", "MO Items", "SO", "Closed Cases", "Sorted"
+      "Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"
     ]);
   
     kciFile = null;
