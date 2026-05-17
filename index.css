@@ -814,6 +814,180 @@ table.dataTable th {
   border-bottom: none;
 }
 
+/* =========================================================
+   WORKGROUP MODAL — NEW STRUCTURED LAYOUT
+========================================================= */
+
+#workgroupModal .modal {
+  width: 1100px;
+  max-width: calc(100vw - 80px);
+  max-height: 85vh;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container */
+.workgroup-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Main card */
+.workgroup-team-card {
+  border: 1px solid #d6d6d6;
+  border-radius: 6px;
+  background: #fff;
+
+  display: grid;
+  grid-template-columns: 240px 1fr 120px;
+
+  overflow: hidden;
+}
+
+/* Shared column styling */
+.workgroup-col {
+  padding: 12px;
+}
+
+/* Vertical separators */
+.workgroup-col:not(:last-child) {
+  border-right: 1px solid #e2e2e2;
+}
+
+/* Team name column */
+.workgroup-team-name input {
+  width: 100%;
+  box-sizing: border-box;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Workgroup list */
+.workgroup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Single workgroup row */
+.workgroup-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Input */
+.workgroup-item input {
+  flex: 1;
+  box-sizing: border-box;
+}
+
+/* Remove button */
+.workgroup-remove-btn {
+  width: 28px;
+  height: 28px;
+
+  border: none;
+  border-radius: 4px;
+
+  background: rgba(229, 57, 53, 0.08);
+  color: #c62828;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.workgroup-remove-btn:hover {
+  background: rgba(229, 57, 53, 0.15);
+}
+
+/* Add workgroup button */
+.workgroup-add-btn {
+  width: fit-content;
+
+  background: #151923;
+  color: #fff;
+
+  border: none;
+  border-radius: 4px;
+
+  padding: 6px 12px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+/* Right actions */
+.workgroup-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Download */
+.workgroup-download-btn {
+  width: 100%;
+
+  background: #151923;
+  color: #fff;
+
+  border: none;
+  border-radius: 4px;
+
+  padding: 7px 10px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+/* Delete team */
+.workgroup-delete-team-btn {
+  width: 100%;
+
+  background: rgba(229, 57, 53, 0.08);
+  color: #c62828;
+
+  border: 1px solid rgba(229, 57, 53, 0.15);
+  border-radius: 4px;
+
+  padding: 7px 10px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.workgroup-delete-team-btn:hover {
+  background: rgba(229, 57, 53, 0.15);
+}
+
+/* Scroll area */
+.workgroup-scroll {
+  overflow-y: auto;
+}
+
+/* Hidden scrollbar */
+.workgroup-scroll::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+.workgroup-scroll {
+  scrollbar-width: none;
+}
+
 /* ===== GLOBAL PROGRESS OVERLAY ===== */
 
 .progress-overlay {
