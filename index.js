@@ -3408,8 +3408,8 @@ document.getElementById("copySoBtn").addEventListener("click", async () => {
       ? "inline-block"
       : "none";
 
-  invalidBtn.textContent =
-    "Invalid CSOs";
+  invalidBtn.textContent = "Invalid CSOs";
+  invalidBtn.classList.remove("invalid-active");
 
   document.getElementById("soModal").style.display =
     "flex";
@@ -3429,6 +3429,8 @@ document.getElementById("copyTrackingBtn").addEventListener("click", async () =>
     .style.display = "none";
   document.getElementById("invalidCsoBtn")
     .textContent = "Invalid CSOs";
+  document.getElementById("invalidCsoBtn")
+    .classList.remove("invalid-active");
 
   document.getElementById("soOutput").value =
     lines.length ? lines.join("\n") : "No eligible tracking URLs found.";
@@ -3476,6 +3478,7 @@ document.getElementById("invalidCsoBtn")
         "Invalid CSO Cases";
 
       btn.textContent = "Valid CSOs";
+      btn.classList.add("invalid-active");
 
       showingInvalidCSOs = true;
 
@@ -3501,6 +3504,7 @@ document.getElementById("invalidCsoBtn")
       "Copy SO Orders Preview";
 
     btn.textContent = "Invalid CSOs";
+    btn.classList.remove("invalid-active");
 
     showingInvalidCSOs = false;
   });
