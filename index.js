@@ -2254,6 +2254,55 @@ async function buildSortedTable() {
 }
 
 async function syncCSOStatusTable() {
+
+  const readStore = getStore("readonly");
+
+  const allData = await new Promise(res => {
+    const req = readStore.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const teamData =
+    allData.filter(r => r.team === currentTeam);
+
+  // =====================================
+  // LOAD DATA
+  // =====================================
+
+  const sorted =
+    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
+
+  let cso =
+    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+
+  // =====================================
+  // COLUMN INDEXES
+  // =====================================
+
+  const sortedCaseIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
+
+  const sortedResolutionIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case Resolution Code");
+
+  const sortedOrderIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Latest Order");
+
+  const csoCaseIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+
+  const csoOrderIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
+
+  const csoStatusIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+
+  const csoTrackingIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+
+  const csoRepairIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
+
   // =====================================
   // BUILD OFFSITE CASE MAP FROM SORTED
   // =====================================
@@ -2294,7 +2343,6 @@ async function syncCSOStatusTable() {
 
     if (!caseId) return;
 
-    // keep first occurrence only
     if (!uniqueMap.has(caseId)) {
       uniqueMap.set(caseId, row);
     }
@@ -2305,15 +2353,15 @@ async function syncCSOStatusTable() {
   // =====================================
   // BUILD FAST CSO LOOKUP MAP
   // =====================================
-  
+
   const csoMap = new Map();
-  
+
   cso.forEach(row => {
-  
+
     const caseId = row[csoCaseIdx];
-  
+
     if (!caseId) return;
-  
+
     csoMap.set(caseId, row);
   });
 
@@ -2327,10 +2375,7 @@ async function syncCSOStatusTable() {
 
     let csoRow = csoMap.get(caseId);
 
-    // =================================
-    // CASE 1 → NO ROW EXISTS
-    // =================================
-
+    // NEW CASE
     if (!csoRow) {
 
       cso.push([
@@ -2345,19 +2390,15 @@ async function syncCSOStatusTable() {
       return;
     }
 
-    // =================================
-    // CASE 2 → COMPARE ORDER
-    // =================================
-
     const existingOrder =
       stripOrderSuffix(csoRow[csoOrderIdx]);
 
-    // SAME ORDER → LEAVE AS IS
+    // SAME ORDER
     if (existingOrder === latestOrder) {
       return;
     }
 
-    // DIFFERENT ORDER → RESET
+    // ORDER CHANGED → RESET
     csoRow[csoOrderIdx] = latestOrder;
 
     csoRow[csoStatusIdx] = "";
@@ -2444,12 +2485,6 @@ async function buildCopySOOrders() {
 
   const csoStatusIdx =
     TABLE_SCHEMAS["CSO Status"].indexOf("Status");
-
-  const csoTrackingIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
-
-  const csoRepairIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
 
   // =====================================
   // BUILD FINAL OUTPUT
