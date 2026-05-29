@@ -307,7 +307,6 @@ table.dataTable tbody td {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
 }
 
 #soOutput {
@@ -1122,7 +1121,7 @@ table.dataTable th {
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  /*gap: 8px; */
 }
 
 .so-count {
