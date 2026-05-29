@@ -2253,138 +2253,179 @@ async function buildSortedTable() {
 }
 
 async function buildCopySOOrders() {
+
   const readStore = getStore("readonly");
+
   const allData = await new Promise(res => {
     const req = readStore.getAll();
     req.onsuccess = () => res(req.result);
   });
 
-  const teamData = allData.filter(r => r.team === currentTeam);
+  const teamData =
+    allData.filter(r => r.team === currentTeam);
 
-  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
-  const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
-  const wo = teamData.find(r => r.sheetName === "WO")?.rows || [];
-  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
-  let cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  // =====================================
+  // LOAD DATA
+  // =====================================
 
-  const dumpIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
-  const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
-  const dumpByCaseId = buildDumpCaseMap(dump, dumpCaseIdx);
+  const sorted =
+    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
 
-  const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
-  const soDateIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
-  const soOrderIdx = TABLE_SCHEMAS["SO"].indexOf("Order Reference ID");
+  let cso =
+    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
-  const csoCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
-  const csoOrderIdx = TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
-  const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+  // =====================================
+  // COLUMN INDEXES
+  // =====================================
 
-  const repairCaseIds = [
-    ...new Set(
-      dump
-        .filter(r => isRepairResolution(r[dumpIdx]))
-        .map(r => r[dumpCaseIdx])
-    )
-  ];
+  const sortedCaseIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
 
-  // 🔥 FULL RESOLUTION RECALCULATION (WO + SO + MO)
-  
-  const recalculatedCases = repairCaseIds.map(caseId => {
-    const dumpRow = dumpByCaseId[caseId];
-    if (!dumpRow) return null;
-  
-    const derivedResolution = getCalculatedResolution(
-      caseId,
-      wo,
-      so,
-      mo,
-      dumpRow[dumpIdx]
-    );
-  
-    return {
-      caseId,
-      resolution: derivedResolution
-    };
-  }).filter(Boolean);
-  
-  // Now filter only Offsite Solution cases
-  const offsiteCases = recalculatedCases
-    .filter(c => c.resolution === "Offsite Solution")
-    .map(c => c.caseId);
+  const sortedResolutionIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case Resolution Code");
 
-  const result = [];
-  let csoUpdated = false;
+  const sortedOrderIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Latest Order");
 
-  offsiteCases.forEach(caseId => {
+  const csoCaseIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
 
-    // 🔎 Filter valid SO rows (must have date + order id)
-    const validSoRows = so.filter(r =>
-      r[soCaseIdx] === caseId &&
-      r[soDateIdx] &&
-      r[soOrderIdx]
-    );
-    
-    if (!validSoRows.length) return;
-    
-    // Sort by Date and Time Submitted DESC
-    const latest = validSoRows.sort((a, b) =>
-      new Date(b[soDateIdx]) - new Date(a[soDateIdx])
-    )[0];
-    
-    const latestOrderId = stripOrderSuffix(latest[soOrderIdx]);
+  const csoOrderIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
 
-    const matchingRows = cso.filter(r => r[csoCaseIdx] === caseId);
+  const csoStatusIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
 
-    // ===== CASE C: No CSO row exists =====
-    if (!matchingRows.length) {
-      cso.push([caseId, latestOrderId, "", "", ""]);
-      csoUpdated = true;
-      result.push(`${caseId},${latestOrderId}`);
+  const csoTrackingIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+
+  const csoRepairIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
+
+  // =====================================
+  // BUILD OFFSITE CASE MAP FROM SORTED
+  // =====================================
+
+  const offsiteMap = new Map();
+
+  sorted.forEach(row => {
+
+    const resolution =
+      normalizeText(row[sortedResolutionIdx]);
+
+    if (resolution !== "offsite solution") {
       return;
     }
 
-    // ===== Remove duplicates if exist =====
-    if (matchingRows.length > 1) {
-      cso = cso.filter(r => r[csoCaseIdx] !== caseId);
-      cso.push([caseId, latestOrderId, "", "", ""]);
-      csoUpdated = true;
-      result.push(`${caseId},${latestOrderId}`);
+    const caseId =
+      row[sortedCaseIdx];
+
+    const latestOrder =
+      stripOrderSuffix(row[sortedOrderIdx]);
+
+    if (!caseId || !latestOrder) {
       return;
     }
 
-    const csoRow = matchingRows[0];
-    const existingOrder = stripOrderSuffix(csoRow[csoOrderIdx]);
-
-    // ===== CASE A: Order matches =====
-    if (existingOrder === latestOrderId) {
-
-      const status = normalizeText(csoRow[csoStatusIdx]);
-
-      if (
-        status === "delivered" ||
-        status === "order cancelled, not to be reopened"
-      ) {
-        return; // exclude
-      }
-
-      result.push(`${caseId},${latestOrderId}`);
-      return;
-    }
-
-    // ===== CASE B: Order differs → Replace & clear =====
-    csoRow[csoOrderIdx] = latestOrderId;
-    csoRow[csoStatusIdx] = "";
-    csoRow[3] = "";  // Tracking Number
-    csoRow[4] = "";  // Repair Status
-
-    csoUpdated = true;
-    result.push(`${caseId},${latestOrderId}`);
+    offsiteMap.set(caseId, latestOrder);
   });
 
-  // ===== Persist CSO changes if updated =====
+  // =====================================
+  // REMOVE DUPLICATE CSO ROWS
+  // =====================================
+
+  const uniqueMap = new Map();
+
+  cso.forEach(row => {
+
+    const caseId = row[csoCaseIdx];
+
+    if (!caseId) return;
+
+    // keep first occurrence only
+    if (!uniqueMap.has(caseId)) {
+      uniqueMap.set(caseId, row);
+    }
+  });
+
+  cso = [...uniqueMap.values()];
+
+  // =====================================
+  // SYNC CSO TABLE WITH SORTED
+  // =====================================
+
+  let csoUpdated = false;
+
+  offsiteMap.forEach((latestOrder, caseId) => {
+
+    let csoRow =
+      cso.find(r => r[csoCaseIdx] === caseId);
+
+    // =================================
+    // CASE 1 → NO ROW EXISTS
+    // =================================
+
+    if (!csoRow) {
+
+      cso.push([
+        caseId,
+        latestOrder,
+        "",
+        "",
+        ""
+      ]);
+
+      csoUpdated = true;
+      return;
+    }
+
+    // =================================
+    // CASE 2 → COMPARE ORDER
+    // =================================
+
+    const existingOrder =
+      stripOrderSuffix(csoRow[csoOrderIdx]);
+
+    // SAME ORDER → LEAVE AS IS
+    if (existingOrder === latestOrder) {
+      return;
+    }
+
+    // DIFFERENT ORDER → RESET
+    csoRow[csoOrderIdx] = latestOrder;
+
+    csoRow[csoStatusIdx] = "";
+    csoRow[csoTrackingIdx] = "";
+    csoRow[csoRepairIdx] = "";
+
+    csoUpdated = true;
+  });
+
+  // =====================================
+  // REMOVE OBSOLETE CASES
+  // =====================================
+
+  const beforeCount = cso.length;
+
+  cso = cso.filter(row => {
+
+    const caseId = row[csoCaseIdx];
+
+    return offsiteMap.has(caseId);
+  });
+
+  if (cso.length !== beforeCount) {
+    csoUpdated = true;
+  }
+
+  // =====================================
+  // SAVE UPDATED CSO TABLE
+  // =====================================
+
   if (csoUpdated) {
 
     const writeStore = getStore("readwrite");
+
     writeStore.put({
       id: getTeamKey("CSO Status"),
       team: currentTeam,
@@ -2393,12 +2434,47 @@ async function buildCopySOOrders() {
       lastUpdated: new Date().toISOString()
     });
 
-    // Refresh UI
+    // UI refresh
     const dt = dataTablesMap["CSO Status"];
+
     dt.clear();
-    cso.forEach(r => dt.row.add(["", ...r]));
+
+    cso.forEach(r => {
+      dt.row.add(["", ...r]);
+    });
+
     dt.draw(false);
   }
+
+  // =====================================
+  // BUILD FINAL OUTPUT
+  // =====================================
+
+  const result = [];
+
+  cso.forEach(row => {
+
+    const caseId =
+      row[csoCaseIdx];
+
+    const orderId =
+      stripOrderSuffix(row[csoOrderIdx]);
+
+    const status =
+      normalizeText(row[csoStatusIdx]);
+
+    // EXCLUDE DELIVERED / CANCELLED
+    if (
+      status === "delivered" ||
+      status === "order cancelled, not to be reopened"
+    ) {
+      return;
+    }
+
+    result.push(
+      `${caseId},${orderId}`
+    );
+  });
 
   return result.join("\n");
 }
