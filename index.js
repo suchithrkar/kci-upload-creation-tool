@@ -1730,7 +1730,6 @@ async function buildClosedCasesAgentFilter(rows) {
 
 function buildClosedCasesSummary(rows) {
   const month = document.getElementById("ccMonthSelect").value;
-  const agentSelect = document.getElementById("ccAgentSelect");
 
   const selectedAgents =
     [...document.querySelectorAll("#ccAgentBox input:checked")]
@@ -1831,7 +1830,6 @@ function attachDrilldownClicks(rows) {
 }
 
 function buildDrilldown(rows, date) {
-  const agentSelect = document.getElementById("ccAgentSelect");
   const selectedAgents =
     [...document.querySelectorAll("#ccAgentBox input:checked")]
       .map(cb => cb.value);
