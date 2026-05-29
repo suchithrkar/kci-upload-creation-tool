@@ -2351,6 +2351,21 @@ async function buildCopySOOrders() {
   cso = [...uniqueMap.values()];
 
   // =====================================
+  // BUILD FAST CSO LOOKUP MAP
+  // =====================================
+  
+  const csoMap = new Map();
+  
+  cso.forEach(row => {
+  
+    const caseId = row[csoCaseIdx];
+  
+    if (!caseId) return;
+  
+    csoMap.set(caseId, row);
+  });
+
+  // =====================================
   // SYNC CSO TABLE WITH SORTED
   // =====================================
 
@@ -2358,8 +2373,7 @@ async function buildCopySOOrders() {
 
   offsiteMap.forEach((latestOrder, caseId) => {
 
-    let csoRow =
-      cso.find(r => r[csoCaseIdx] === caseId);
+    let csoRow = csoMap.get(caseId);
 
     // =================================
     // CASE 1 → NO ROW EXISTS
