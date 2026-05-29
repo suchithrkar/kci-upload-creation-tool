@@ -1322,7 +1322,20 @@ function parseGNProCSV(text) {
 }
 
 function stripOrderSuffix(orderId) {
-  return String(orderId || "").replace(/-0\d$/, "");
+
+  let cleaned =
+    String(orderId || "").trim();
+
+  // REMOVE LINE ITEM SUFFIX
+  cleaned =
+    cleaned.replace(/-\d+$/, "");
+
+  // REMOVE LEADING/TRAILING
+  // SPECIAL CHARACTERS & SPACES
+  cleaned =
+    cleaned.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "");
+
+  return cleaned;
 }
 
 async function processGNProCSOFile(file) {
