@@ -2,6 +2,7 @@ let kciFile = null;
 let csoFile = null;
 let trackingFile = null;
 let workbookCache = null;
+let invalidCSOEntries = [];
 let tablesMap = {};
 let currentTeam = null;
 let isAddingTeamInline = false;
@@ -2487,6 +2488,12 @@ async function buildCopySOOrders() {
     teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
   // =====================================
+  // RESET INVALID CACHE
+  // =====================================
+
+  invalidCSOEntries = [];
+
+  // =====================================
   // COLUMN INDEXES
   // =====================================
 
@@ -2521,6 +2528,20 @@ async function buildCopySOOrders() {
       status === "delivered" ||
       status === "order cancelled, not to be reopened"
     ) {
+      return;
+    }
+
+    // =====================================
+    // INVALID CSO CHECK
+    // =====================================
+
+    if (orderId.length !== 8) {
+
+      invalidCSOEntries.push({
+        caseId,
+        cso: orderId
+      });
+
       return;
     }
 
@@ -3340,7 +3361,9 @@ document.getElementById("openRepairCasesReportBtn")
   });
 
 document.getElementById("copySoBtn").addEventListener("click", async () => {
+
   if (!requireTeamSelected()) return;
+
   const output = await buildCopySOOrders();
 
   const lines = output
@@ -3348,13 +3371,27 @@ document.getElementById("copySoBtn").addEventListener("click", async () => {
     : [];
 
   document.getElementById("soOutput").value =
-    lines.length ? lines.join("\n") : "No eligible cases found.";
+    lines.length
+      ? lines.join("\n")
+      : "No eligible cases found.";
 
   document.getElementById("soCount").textContent =
     `Total cases: ${lines.length}`;
 
   document.getElementById("soModalTitle").textContent =
     "Copy SO Orders Preview";
+
+  // =====================================
+  // INVALID CSO BUTTON VISIBILITY
+  // =====================================
+
+  const invalidBtn =
+    document.getElementById("invalidCsoBtn");
+
+  invalidBtn.style.display =
+    invalidCSOEntries.length
+      ? "inline-block"
+      : "none";
 
   document.getElementById("soModal").style.display = "flex";
 });
@@ -3382,6 +3419,29 @@ document.getElementById("copyTrackingBtn").addEventListener("click", async () =>
 document.getElementById("closeModalBtn").addEventListener("click", () => {
   document.getElementById("soModal").style.display = "none";
 });
+
+document.getElementById("invalidCsoBtn")
+  .addEventListener("click", () => {
+
+    if (!invalidCSOEntries.length) {
+      alert("No invalid CSOs found.");
+      return;
+    }
+
+    const output = invalidCSOEntries
+      .map(x =>
+        `${x.caseId},${x.cso || "Blank"}`
+      )
+      .join("\n");
+
+    document.getElementById("soOutput").value = output;
+
+    document.getElementById("soCount").textContent =
+      `Invalid CSOs: ${invalidCSOEntries.length}`;
+
+    document.getElementById("soModalTitle").textContent =
+      "Invalid CSO Cases";
+  });
 
 document.getElementById("copyToClipboardBtn").addEventListener("click", async () => {
   const text = document.getElementById("soOutput").value;
