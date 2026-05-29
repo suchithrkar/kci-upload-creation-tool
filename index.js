@@ -3,6 +3,8 @@ let csoFile = null;
 let trackingFile = null;
 let workbookCache = null;
 let invalidCSOEntries = [];
+let validCSOOutput = "";
+let showingInvalidCSOs = false;
 let tablesMap = {};
 let currentTeam = null;
 let isAddingTeamInline = false;
@@ -3370,10 +3372,23 @@ document.getElementById("copySoBtn").addEventListener("click", async () => {
     ? output.split("\n").filter(l => l.trim() !== "")
     : [];
 
-  document.getElementById("soOutput").value =
+  // =====================================
+  // CACHE VALID OUTPUT
+  // =====================================
+
+  validCSOOutput =
     lines.length
       ? lines.join("\n")
       : "No eligible cases found.";
+
+  showingInvalidCSOs = false;
+
+  // =====================================
+  // DEFAULT VIEW = VALID CSOs
+  // =====================================
+
+  document.getElementById("soOutput").value =
+    validCSOOutput;
 
   document.getElementById("soCount").textContent =
     `Total cases: ${lines.length}`;
@@ -3382,7 +3397,7 @@ document.getElementById("copySoBtn").addEventListener("click", async () => {
     "Copy SO Orders Preview";
 
   // =====================================
-  // INVALID CSO BUTTON VISIBILITY
+  // INVALID BUTTON
   // =====================================
 
   const invalidBtn =
@@ -3393,7 +3408,11 @@ document.getElementById("copySoBtn").addEventListener("click", async () => {
       ? "inline-block"
       : "none";
 
-  document.getElementById("soModal").style.display = "flex";
+  invalidBtn.textContent =
+    "Invalid CSOs";
+
+  document.getElementById("soModal").style.display =
+    "flex";
 });
 
 document.getElementById("copyTrackingBtn").addEventListener("click", async () => {
@@ -3403,6 +3422,11 @@ document.getElementById("copyTrackingBtn").addEventListener("click", async () =>
   const lines = output
     ? output.split("\n").filter(l => l.trim())
     : [];
+
+  showingInvalidCSOs = false;
+
+  document.getElementById("invalidCsoBtn")
+    .style.display = "none";
 
   document.getElementById("soOutput").value =
     lines.length ? lines.join("\n") : "No eligible tracking URLs found.";
@@ -3423,24 +3447,60 @@ document.getElementById("closeModalBtn").addEventListener("click", () => {
 document.getElementById("invalidCsoBtn")
   .addEventListener("click", () => {
 
-    if (!invalidCSOEntries.length) {
-      alert("No invalid CSOs found.");
+    const btn =
+      document.getElementById("invalidCsoBtn");
+
+    // =====================================
+    // SHOW INVALID CSOs
+    // =====================================
+
+    if (!showingInvalidCSOs) {
+
+      const output = invalidCSOEntries.length
+        ? invalidCSOEntries
+            .map(x =>
+              `${x.caseId},${x.cso || "Blank"}`
+            )
+            .join("\n")
+        : "No invalid CSOs found.";
+
+      document.getElementById("soOutput").value =
+        output;
+
+      document.getElementById("soCount").textContent =
+        `Invalid CSOs: ${invalidCSOEntries.length}`;
+
+      document.getElementById("soModalTitle").textContent =
+        "Invalid CSO Cases";
+
+      btn.textContent = "Valid CSOs";
+
+      showingInvalidCSOs = true;
+
       return;
     }
 
-    const output = invalidCSOEntries
-      .map(x =>
-        `${x.caseId},${x.cso || "Blank"}`
-      )
-      .join("\n");
+    // =====================================
+    // SHOW VALID CSOs
+    // =====================================
 
-    document.getElementById("soOutput").value = output;
+    const validLines =
+      validCSOOutput
+        .split("\n")
+        .filter(x => x.trim() !== "");
+
+    document.getElementById("soOutput").value =
+      validCSOOutput;
 
     document.getElementById("soCount").textContent =
-      `Invalid CSOs: ${invalidCSOEntries.length}`;
+      `Total cases: ${validLines.length}`;
 
     document.getElementById("soModalTitle").textContent =
-      "Invalid CSO Cases";
+      "Copy SO Orders Preview";
+
+    btn.textContent = "Invalid CSOs";
+
+    showingInvalidCSOs = false;
   });
 
 document.getElementById("copyToClipboardBtn").addEventListener("click", async () => {
