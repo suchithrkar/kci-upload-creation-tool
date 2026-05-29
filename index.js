@@ -44,7 +44,8 @@ const TABLE_SCHEMAS = {
     "Queue",
     "OTC Code",
     "Product Serial Number",
-    "ProductName"
+    "ProductName",
+    "Workgroup (Owning User) (User)"
   ],
 
   "WO": [
@@ -100,6 +101,15 @@ const TABLE_SCHEMAS = {
     "Owner",
     "Country",
     "OTC Code"
+  ],
+
+  "Sorted": [
+    "Case ID",
+    "Case Resolution Code",
+    "Latest Order",
+    "Order Status",
+    "Workgroup",
+    "Team"
   ],
 
   "CSO Status": [
@@ -187,7 +197,8 @@ const DUMP_HEADER_DISPLAY_MAP = {
   "Full Name (Primary Contact) (Contact)": "Customer Name",
   "Full Name (Owning User) (User)": "Case Owner",
   "ProductName": "Product Name",
-  "Product Serial Number": "Serial Number"
+  "Product Serial Number": "Serial Number",
+  "Workgroup (Owning User) (User)": "Workgroup"
 };
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
@@ -260,7 +271,9 @@ async function setCurrentTeam(team) {
 
   updateProcessButtonState();
   // ✅ ENABLE action bar buttons once team is selected
-  document.querySelectorAll(".action-bar button").forEach(btn => {
+  document.querySelectorAll(
+    ".action-bar button, #workgroupBtn"
+  ).forEach(btn => {
     btn.disabled = false;
   });
 }
@@ -449,7 +462,7 @@ async function deleteTeam(team) {
       );
     
       document.querySelectorAll(
-        ".action-bar button, #processBtn"
+        ".action-bar button, #processBtn, #workgroupBtn"
       ).forEach(btn => btn.disabled = true);
     
       // Explicitly refresh dropdown (now empty)
@@ -970,7 +983,7 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     const store = getStore("readwrite");
     
     // 🔥 HARD DELETE old KCI sheets from IndexedDB
-    ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"].forEach(sheet => {
+    ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases", "Sorted"].forEach(sheet => {
       store.delete(getTeamKey(sheet));
       dataTablesMap[sheet]?.clear().draw(false);
     });
@@ -1212,6 +1225,7 @@ function processExcelFile(file, allowedSheets) {
       };
 
     await buildSheetTables(filteredWorkbook);
+    await buildSortedTable();
     resolve();
     };
 
@@ -2060,6 +2074,184 @@ function getCalculatedResolution(caseId, wo, so, mo, dumpResolution) {
   return dumpResolution;
 }
 
+async function buildSortedTable() {
+
+  const store = getStore("readonly");
+
+  const all = await new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const teamData = all.filter(r => r.team === currentTeam);
+
+  const dump =
+    teamData.find(r => r.sheetName === "Dump")?.rows || [];
+
+  const wo =
+    teamData.find(r => r.sheetName === "WO")?.rows || [];
+
+  const so =
+    teamData.find(r => r.sheetName === "SO")?.rows || [];
+
+  const mo =
+    teamData.find(r => r.sheetName === "MO")?.rows || [];
+
+  const workgroupMap =
+    teamData.find(r => r.sheetName === "WORKGROUP_MAP")
+      ?.data || [];
+
+  const dumpCaseIdx =
+    TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+
+  const dumpResolutionIdx =
+    TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
+
+  const dumpWorkgroupIdx =
+    TABLE_SCHEMAS["Dump"].indexOf(
+      "Workgroup (Owning User) (User)"
+    );
+
+  const validResolutions = [
+    "onsite solution",
+    "offsite solution",
+    "parts shipped"
+  ];
+
+  const finalRows = [];
+  
+  dump.forEach(row => {
+  
+    const caseId = row[dumpCaseIdx];
+    const dumpResolution = row[dumpResolutionIdx];
+  
+    if (
+      !validResolutions.includes(
+        normalizeText(dumpResolution)
+      )
+    ) {
+      return;
+    }
+  
+    const calculatedResolution =
+      getCalculatedResolution(
+        caseId,
+        wo,
+        so,
+        mo,
+        dumpResolution
+      );
+
+    const workgroup =
+      row[dumpWorkgroupIdx] || "";
+    
+    const assignedTeam =
+      workgroupMap.find(team =>
+        team.workgroups.some(w =>
+          normalizeText(w) === normalizeText(workgroup)
+        )
+      )?.name || "";
+  
+    let latestOrder = "";
+    let orderStatus = "";
+  
+    // =====================================
+    // ONSITE SOLUTION → WO
+    // =====================================
+  
+    if (calculatedResolution === "Onsite Solution") {
+  
+      const validWOs = wo.filter(r =>
+        r[0] === caseId &&
+        r[1] &&
+        r[6]
+      );
+  
+      if (validWOs.length) {
+  
+        validWOs.sort((a, b) =>
+          new Date(b[6]) - new Date(a[6])
+        );
+  
+        const latestWO = validWOs[0];
+  
+        latestOrder = latestWO[1] || "";
+        orderStatus = latestWO[5] || "";
+      }
+    }
+  
+    // =====================================
+    // OFFSITE SOLUTION → SO
+    // =====================================
+  
+    else if (calculatedResolution === "Offsite Solution") {
+  
+      const validSOs = so.filter(r =>
+        r[0] === caseId &&
+        r[4] &&
+        r[2]
+      );
+  
+      if (validSOs.length) {
+  
+        validSOs.sort((a, b) =>
+          new Date(b[2]) - new Date(a[2])
+        );
+  
+        const latestSO = validSOs[0];
+  
+        latestOrder = latestSO[4] || "";
+        orderStatus = "";
+      }
+    }
+  
+    // =====================================
+    // PARTS SHIPPED → MO
+    // =====================================
+  
+    else if (calculatedResolution === "Parts Shipped") {
+  
+      const latestMO = getLatestMO(caseId, mo);
+  
+      if (latestMO) {
+        latestOrder = latestMO[0] || "";
+        orderStatus = latestMO[3] || "";
+      }
+    }
+  
+    finalRows.push([
+      caseId,
+      calculatedResolution,
+      latestOrder,
+      orderStatus,
+      workgroup,
+      assignedTeam
+    ]);
+  });
+
+  // ===== UI UPDATE =====
+
+  const dt = dataTablesMap["Sorted"];
+
+  dt.clear();
+
+  finalRows.forEach(r => {
+    dt.row.add(["", ...r]);
+  });
+
+  dt.draw(false);
+
+  // ===== DB SAVE =====
+
+  getStore("readwrite").put({
+    id: getTeamKey("Sorted"),
+    team: currentTeam,
+    sheetName: "Sorted",
+    rows: finalRows,
+    lastUpdated: new Date().toISOString()
+  });
+}
+
 async function buildCopySOOrders() {
   const readStore = getStore("readonly");
   const allData = await new Promise(res => {
@@ -2779,6 +2971,108 @@ function addMarketBlock(name = "", countries = []) {
   adjustMappingModalWidth("marketContainer", "marketModal");
 }
 
+function renderWorkgroupModal(data = []) {
+  const container = document.getElementById("workgroupContainer");
+
+  container.innerHTML = "";
+
+  if (!data.length) {
+    addWorkgroupBlock();
+  } else {
+    data.forEach(w =>
+      addWorkgroupBlock(
+        w.name,
+        w.workgroups
+      )
+    );
+  }
+}
+
+function addWorkgroupBlock(name = "", workgroups = []) {
+
+  const container =
+    document.getElementById("workgroupContainer");
+
+  const card = document.createElement("div");
+  card.className = "workgroup-team-card";
+
+  card.innerHTML = `
+    <div class="workgroup-col workgroup-team-name">
+      <input
+        type="text"
+        placeholder="Workgroup Team Name"
+        value="${name}"
+      >
+    </div>
+
+    <div class="workgroup-col">
+      <div class="workgroup-list"></div>
+
+      <button class="workgroup-add-btn">
+        + Add Workgroup
+      </button>
+    </div>
+
+    <div class="workgroup-col workgroup-actions">
+
+      <button class="workgroup-delete-team-btn">
+        Delete Team
+      </button>
+
+    </div>
+  `;
+
+  const workgroupList =
+    card.querySelector(".workgroup-list");
+
+  const addBtn =
+    card.querySelector(".workgroup-add-btn");
+
+  const deleteBtn =
+    card.querySelector(".workgroup-delete-team-btn");
+
+  function addWorkgroupRow(value = "") {
+
+    const row = document.createElement("div");
+    row.className = "workgroup-item";
+
+    row.innerHTML = `
+      <input
+        type="text"
+        value="${value}"
+        placeholder="Workgroup Name"
+      >
+
+      <button class="workgroup-remove-btn">
+        ✕
+      </button>
+    `;
+
+    row.querySelector(".workgroup-remove-btn")
+      .onclick = () => {
+        row.remove();
+      };
+
+    workgroupList.appendChild(row);
+  }
+
+  if (workgroups.length) {
+    workgroups.forEach(addWorkgroupRow);
+  } else {
+    addWorkgroupRow();
+  }
+
+  addBtn.onclick = () => {
+    addWorkgroupRow();
+  };
+
+  deleteBtn.onclick = () => {
+    card.remove();
+  };
+
+  container.appendChild(card);
+}
+
 document.getElementById("saveTlBtn").onclick = () => {
   const blocks = document.querySelectorAll("#tlContainer .mapping-block");
   const data = [];
@@ -2829,6 +3123,47 @@ document.getElementById("saveMarketBtn").onclick = () => {
   closeModal("marketModal");
 };
 
+document.getElementById("saveWorkgroupBtn").onclick = () => {
+
+  const cards =
+    document.querySelectorAll(
+      "#workgroupContainer .workgroup-team-card"
+    );
+
+  const data = [];
+
+  cards.forEach(card => {
+
+    const name =
+      card.querySelector(
+        ".workgroup-team-name input"
+      ).value.trim();
+
+    if (!name) return;
+
+    const workgroups =
+      [...card.querySelectorAll(".workgroup-item input")]
+        .map(i => i.value.trim())
+        .filter(Boolean);
+
+    data.push({
+      name,
+      workgroups
+    });
+
+  });
+
+  getStore("readwrite").put({
+    id: getTeamKey("WORKGROUP_MAP"),
+    team: currentTeam,
+    sheetName: "WORKGROUP_MAP",
+    data,
+    lastUpdated: new Date().toISOString()
+  });
+
+  closeModal("workgroupModal");
+};
+
 document.getElementById("tlBtn").onclick = async () => {
   if (!requireTeamSelected()) return;
   const req = getStore().get(getTeamKey("TL_MAP"));
@@ -2857,6 +3192,10 @@ document.getElementById("addMarketBtn").onclick = () => {
   const container = document.getElementById("marketContainer");
   container.querySelector(".placeholder")?.remove();
   addMarketBlock();
+};
+
+document.getElementById("addWorkgroupBtn").onclick = () => {
+  addWorkgroupBlock();
 };
 
 document.getElementById("closedCasesReportBtn")
@@ -3267,7 +3606,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (!lastTeam) {
     document.querySelectorAll(
-      ".action-bar button, #processBtn"
+      ".action-bar button, #processBtn, #workgroupBtn"
     ).forEach(btn => btn.disabled = true);
   }
   
@@ -3298,6 +3637,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 document.getElementById("downloadUploadExcelBtn")
   .addEventListener("click", downloadUploadExcel);
+
+document.getElementById("workgroupBtn").onclick = async () => {
+  if (!requireTeamSelected()) return;
+
+  const req = getStore().get(getTeamKey("WORKGROUP_MAP"));
+
+  req.onsuccess = () => {
+    renderWorkgroupModal(req.result?.data || []);
+    openModal("workgroupModal");
+  };
+};
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
