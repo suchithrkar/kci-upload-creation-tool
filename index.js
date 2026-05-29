@@ -3427,6 +3427,8 @@ document.getElementById("copyTrackingBtn").addEventListener("click", async () =>
 
   document.getElementById("invalidCsoBtn")
     .style.display = "none";
+  document.getElementById("invalidCsoBtn")
+    .textContent = "Invalid CSOs";
 
   document.getElementById("soOutput").value =
     lines.length ? lines.join("\n") : "No eligible tracking URLs found.";
