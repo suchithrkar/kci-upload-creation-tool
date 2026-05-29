@@ -1226,6 +1226,7 @@ function processExcelFile(file, allowedSheets) {
 
     await buildSheetTables(filteredWorkbook);
     await buildSortedTable();
+    await syncCSOStatusTable();
     resolve();
     };
 
@@ -2252,56 +2253,7 @@ async function buildSortedTable() {
   });
 }
 
-async function buildCopySOOrders() {
-
-  const readStore = getStore("readonly");
-
-  const allData = await new Promise(res => {
-    const req = readStore.getAll();
-    req.onsuccess = () => res(req.result);
-  });
-
-  const teamData =
-    allData.filter(r => r.team === currentTeam);
-
-  // =====================================
-  // LOAD DATA
-  // =====================================
-
-  const sorted =
-    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
-
-  let cso =
-    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
-
-  // =====================================
-  // COLUMN INDEXES
-  // =====================================
-
-  const sortedCaseIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
-
-  const sortedResolutionIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case Resolution Code");
-
-  const sortedOrderIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Latest Order");
-
-  const csoCaseIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
-
-  const csoOrderIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
-
-  const csoStatusIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
-
-  const csoTrackingIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
-
-  const csoRepairIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
-
+async function syncCSOStatusTable() {
   // =====================================
   // BUILD OFFSITE CASE MAP FROM SORTED
   // =====================================
@@ -2459,6 +2411,45 @@ async function buildCopySOOrders() {
 
     dt.draw(false);
   }
+}
+
+async function buildCopySOOrders() {
+
+  const readStore = getStore("readonly");
+
+  const allData = await new Promise(res => {
+    const req = readStore.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const teamData =
+    allData.filter(r => r.team === currentTeam);
+
+  // =====================================
+  // LOAD DATA
+  // =====================================
+
+  let cso =
+    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+
+  // =====================================
+  // COLUMN INDEXES
+  // =====================================
+
+  const csoCaseIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+
+  const csoOrderIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
+
+  const csoStatusIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+
+  const csoTrackingIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+
+  const csoRepairIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
 
   // =====================================
   // BUILD FINAL OUTPUT
