@@ -1133,7 +1133,7 @@ table.dataTable th {
 /* ===== VALID / INVALID CSO TOGGLE BUTTON ===== */
 
 .cso-toggle-btn {
-  background: #2c2c2c;
+  background: #151923;
   color: #ffffff;
 
   border: 1px solid #3a3a3a;
@@ -1154,7 +1154,7 @@ table.dataTable th {
 /* ===== ACTIVE INVALID MODE ===== */
 
 .cso-toggle-btn.invalid-active {
-  background: #2c2c2c;
+  background: #151923;
   border-color: #5a5a5a;
 }
 
