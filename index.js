@@ -1342,154 +1342,184 @@ function stripOrderSuffix(orderId) {
 }
 
 async function processGNProCSOFile(file) {
+
+  // =====================================
+  // LOAD EXISTING DATA
+  // =====================================
+
   const store = getStore("readonly");
+
   const allData = await new Promise(res => {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
-  
-  // 🔒 TEAM FILTER
-  const teamData = allData.filter(r => r.team === currentTeam);
-  
-  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
-  const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
-  const wo = teamData.find(r => r.sheetName === "WO")?.rows || [];
-  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
-  const oldCso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
-  // Build GNPro CSV map
+  const teamData =
+    allData.filter(r => r.team === currentTeam);
+
+  let csoRows =
+    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+
+  let sortedRows =
+    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
+
+  // =====================================
+  // PARSE GNPRO CSV
+  // =====================================
+
   const csvText = await file.text();
-  const gnproMap = parseGNProCSV(csvText);
 
-  const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
-  const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
-  const dumpByCaseId = buildDumpCaseMap(dump, dumpCaseIdx);
+  const gnproMap =
+    parseGNProCSV(csvText);
 
-  const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
-  const soDateIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
-  const soOrderIdx = TABLE_SCHEMAS["SO"].indexOf("Order Reference ID");
+  // =====================================
+  // COLUMN INDEXES
+  // =====================================
 
-  const oldCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
-  const oldStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
-  const oldTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+  const csoCaseIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
 
-  // 🔥 FULL RESOLUTION RECALCULATION (WO + SO + MO)
-  
-  // 1️⃣ Identify repair cases from Dump
-  const repairCaseIds = [
-    ...new Set(
-      dump
-        .filter(r => isRepairResolution(r[dumpResIdx]))
-        .map(r => r[dumpCaseIdx])
-    )
-  ];
-  
-  // 2️⃣ Recalculate resolution per case
-  const recalculatedCases = repairCaseIds.map(caseId => {
-    const dumpRow = dumpByCaseId[caseId];
-    if (!dumpRow) return null;
-  
-    const derivedResolution = getCalculatedResolution(
-      caseId,
-      wo,
-      so,
-      mo,
-      dumpRow[dumpResIdx]
-    );
-  
-    return {
-      caseId,
-      resolution: derivedResolution
-    };
-  }).filter(Boolean);
-  
-  // 3️⃣ Filter only Offsite Solution
-  const offsiteCases = recalculatedCases
-    .filter(c => c.resolution === "Offsite Solution")
-    .map(c => c.caseId);
+  const csoStatusIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
 
-  const finalRows = [];
+  const csoTrackingIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+
+  const csoRepairIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
+
+  const sortedCaseIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
+
+  const sortedOrderStatusIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Order Status");
+
+  // =====================================
+  // BUILD FAST SORTED LOOKUP
+  // =====================================
+
+  const sortedMap = new Map();
+
+  sortedRows.forEach(row => {
+
+    const caseId = row[sortedCaseIdx];
+
+    if (!caseId) return;
+
+    sortedMap.set(caseId, row);
+  });
+
+  // =====================================
+  // UPDATE EXISTING CSO ROWS
+  // =====================================
 
   let processed = 0;
-  const total = offsiteCases.length;
-  
-  offsiteCases.forEach(caseId => {
+  const total = csoRows.length;
+
+  csoRows.forEach(csoRow => {
+
     processed++;
+
     updateProgressContext(
       processed,
       total,
-      `Processing CSO cases (${processed}/${total})`
+      `Updating CSO Status (${processed}/${total})`
     );
-    // 🔎 Filter valid SO rows (must have date + order id)
-    const validSoRows = so.filter(r =>
-      r[soCaseIdx] === caseId &&
-      r[soDateIdx] &&
-      r[soOrderIdx]
-    );
-    
-    if (!validSoRows.length) return;
-    
-    // Sort by Date and Time Submitted DESC
-    const latestSO = validSoRows.sort((a, b) =>
-      new Date(b[soDateIdx]) - new Date(a[soDateIdx])
-    )[0];
-    
-    const cso = stripOrderSuffix(latestSO[soOrderIdx]);
 
-    let status = "Not Found";
-    let tracking = "";
+    const caseId =
+      csoRow[csoCaseIdx];
 
-    const oldRow = oldCso.find(r => r[oldCaseIdx] === caseId);
-    if (oldRow) {
-      const oldStatus = normalizeText(oldRow[oldStatusIdx]);
-      if (
-        oldStatus === "delivered" ||
-        oldStatus === "order cancelled, not to be reopened"
-      ) {
-        status = formatSentenceCase(oldRow[oldStatusIdx]);
-        tracking = oldRow[oldTrackIdx];
-        finalRows.push([
-          caseId,
-          cso,
-          status,
-          tracking,
-          oldRow[4] || ""   // Repair Status (if exists)
-        ]);
-        return;
-      }
+    if (!caseId) return;
+
+    // CSV ENTRY NOT FOUND
+    const csvRow =
+      gnproMap.get(caseId);
+
+    if (!csvRow) {
+      return;
     }
 
-    const csvRow = gnproMap.get(caseId);
-    let repairStatus = "";
-    
-    if (csvRow) {
-      status = csvRow.status;
-      tracking = csvRow.tracking;
-      repairStatus = csvRow.repairStatus || "";
+    // =====================================
+    // UPDATE CSO STATUS TABLE
+    // =====================================
+
+    csoRow[csoStatusIdx] =
+      csvRow.status || "";
+
+    csoRow[csoTrackingIdx] =
+      csvRow.tracking || "";
+
+    csoRow[csoRepairIdx] =
+      csvRow.repairStatus || "";
+
+    // =====================================
+    // UPDATE SORTED TABLE
+    // =====================================
+
+    const sortedRow =
+      sortedMap.get(caseId);
+
+    if (sortedRow) {
+
+      sortedRow[sortedOrderStatusIdx] =
+        csvRow.status || "";
     }
-    
-    finalRows.push([
-      caseId,
-      cso,
-      status,
-      tracking,
-      repairStatus
-    ]);
   });
 
-  // Update UI
-  const dt = dataTablesMap["CSO Status"];
-  dt.clear();
-  finalRows.forEach(r => dt.row.add(["", ...r]));
-  dt.draw(false);
+  // =====================================
+  // UPDATE CSO STATUS UI
+  // =====================================
 
-  // Save to IndexedDB
-  const writeStore = getStore("readwrite");
+  const csoDT =
+    dataTablesMap["CSO Status"];
+
+  csoDT.clear();
+
+  csoRows.forEach(r => {
+    csoDT.row.add(["", ...r]);
+  });
+
+  csoDT.draw(false);
+
+  // =====================================
+  // UPDATE SORTED UI
+  // =====================================
+
+  const sortedDT =
+    dataTablesMap["Sorted"];
+
+  sortedDT.clear();
+
+  sortedRows.forEach(r => {
+    sortedDT.row.add(["", ...r]);
+  });
+
+  sortedDT.draw(false);
+
+  // =====================================
+  // SAVE CSO STATUS
+  // =====================================
+
+  const writeStore =
+    getStore("readwrite");
+
   writeStore.put({
     id: getTeamKey("CSO Status"),
     team: currentTeam,
     sheetName: "CSO Status",
-    rows: finalRows,
+    rows: csoRows,
+    lastUpdated: new Date().toISOString()
+  });
+
+  // =====================================
+  // SAVE SORTED
+  // =====================================
+
+  writeStore.put({
+    id: getTeamKey("Sorted"),
+    team: currentTeam,
+    sheetName: "Sorted",
+    rows: sortedRows,
     lastUpdated: new Date().toISOString()
   });
 }
