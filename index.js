@@ -2703,10 +2703,7 @@ async function syncDeliveryDetailsTable() {
               row[moItemNameIdx]
             );
     
-          return (
-            materialOrder === latestOrderNormalized &&
-            lineItem.endsWith("- 1")
-          );
+          return (materialOrder === latestOrderNormalized);
         });
     
       trackingUrl =
