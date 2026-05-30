@@ -2164,6 +2164,12 @@ async function buildSortedTable() {
       "Workgroup (Owning User) (User)"
     );
 
+  const moOrderIdx =
+    TABLE_SCHEMAS["MO"].indexOf("Order Number");
+  
+  const moStatusIdx =
+    TABLE_SCHEMAS["MO"].indexOf("Order Status");
+
   const validResolutions = [
     "onsite solution",
     "offsite solution",
