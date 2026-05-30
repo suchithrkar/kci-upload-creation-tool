@@ -1523,6 +1523,12 @@ async function processGNProCSOFile(file) {
     rows: sortedRows,
     lastUpdated: new Date().toISOString()
   });
+
+  // =====================================
+  // SYNC DELIVERY DETAILS
+  // =====================================
+  
+  await syncDeliveryDetailsTable();
 }
 
 function loadDataFromDB() {
@@ -2497,6 +2503,281 @@ async function syncCSOStatusTable() {
 
     dt.draw(false);
   }
+}
+
+async function syncDeliveryDetailsTable() {
+
+  const store = getStore("readonly");
+
+  const allData = await new Promise(res => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+
+  const teamData =
+    allData.filter(r => r.team === currentTeam);
+
+  // =====================================
+  // LOAD TABLES
+  // =====================================
+
+  const sorted =
+    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
+
+  const moItems =
+    teamData.find(r => r.sheetName === "MO Items")?.rows || [];
+
+  const cso =
+    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+
+  let delivery =
+    teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
+
+  // =====================================
+  // COLUMN INDEXES
+  // =====================================
+
+  const sortedCaseIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
+
+  const sortedResolutionIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case Resolution Code");
+
+  const sortedOrderIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Latest Order");
+
+  const sortedStatusIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Order Status");
+
+  const moItemOrderIdx =
+    TABLE_SCHEMAS["MO Items"].indexOf("Material Order");
+
+  const moItemNameIdx =
+    TABLE_SCHEMAS["MO Items"].indexOf("MO Line Items Name");
+
+  const moItemUrlIdx =
+    TABLE_SCHEMAS["MO Items"].indexOf("Tracking Url");
+
+  const csoCaseIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+
+  const csoTrackingIdx =
+    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
+
+  const delCaseIdx =
+    TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
+
+  const delOrderIdx =
+    TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
+
+  const delTrackingIdx =
+    TABLE_SCHEMAS["Delivery Details"].indexOf("Tracking URL");
+
+  const delStatusIdx =
+    TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
+
+  // =====================================
+  // BUILD DESIRED LIST
+  // =====================================
+
+  const desiredMap = new Map();
+
+  sorted.forEach(row => {
+
+    const caseId =
+      row[sortedCaseIdx];
+
+    const resolution =
+      normalizeText(row[sortedResolutionIdx]);
+
+    const latestOrder =
+      row[sortedOrderIdx] || "";
+
+    const orderStatus =
+      normalizeText(row[sortedStatusIdx]);
+
+    if (!caseId || !latestOrder) {
+      return;
+    }
+
+    const isEligible =
+      (
+        resolution === "offsite solution" &&
+        orderStatus === "delivered"
+      )
+      ||
+      (
+        resolution === "parts shipped" &&
+        (
+          orderStatus === "closed" ||
+          orderStatus === "pod"
+        )
+      );
+
+    if (!isEligible) {
+      return;
+    }
+
+    desiredMap.set(caseId, {
+      resolution,
+      latestOrder
+    });
+  });
+
+  // =====================================
+  // BUILD DELIVERY MAP
+  // =====================================
+
+  const deliveryMap = new Map();
+
+  delivery.forEach(row => {
+
+    const caseId =
+      row[delCaseIdx];
+
+    if (!caseId) return;
+
+    deliveryMap.set(caseId, {
+      orderId:
+        row[delOrderIdx] || "",
+
+      trackingUrl:
+        row[delTrackingIdx] || "",
+
+      status:
+        row[delStatusIdx] || ""
+    });
+  });
+
+  // =====================================
+  // PROCESS DESIRED CASES
+  // =====================================
+
+  desiredMap.forEach((data, caseId) => {
+
+    const existing =
+      deliveryMap.get(caseId);
+
+    // =====================================
+    // SAME ORDER → DO NOTHING
+    // =====================================
+
+    if (
+      existing &&
+      existing.orderId === data.latestOrder
+    ) {
+      return;
+    }
+
+    let trackingUrl = "";
+
+    // =====================================
+    // PARTS SHIPPED
+    // =====================================
+
+    if (data.resolution === "parts shipped") {
+
+      const moItem =
+        moItems.find(row =>
+          row[moItemOrderIdx] === data.latestOrder &&
+          normalizeText(
+            row[moItemNameIdx]
+          ).endsWith("- 1")
+        );
+
+      trackingUrl =
+        moItem?.[moItemUrlIdx] || "";
+    }
+
+    // =====================================
+    // OFFSITE SOLUTION
+    // =====================================
+
+    else if (
+      data.resolution === "offsite solution"
+    ) {
+
+      const csoRow =
+        cso.find(r =>
+          r[csoCaseIdx] === caseId
+        );
+
+      const trackingNumber =
+        csoRow?.[csoTrackingIdx] || "";
+
+      if (trackingNumber) {
+
+        trackingUrl =
+          "http://wwwapps.ups.com/WebTracking/processInputRequest" +
+          "?TypeOfInquiryNumber=T&InquiryNumber1=" +
+          trackingNumber;
+      }
+    }
+
+    // =====================================
+    // UPSERT / REBUILD
+    // =====================================
+
+    deliveryMap.set(caseId, {
+      orderId: data.latestOrder,
+      trackingUrl,
+      status: ""
+    });
+  });
+
+  // =====================================
+  // REMOVE OBSOLETE CASES
+  // =====================================
+
+  [...deliveryMap.keys()].forEach(caseId => {
+
+    if (!desiredMap.has(caseId)) {
+      deliveryMap.delete(caseId);
+    }
+  });
+
+  // =====================================
+  // BUILD FINAL ROWS
+  // =====================================
+
+  const finalRows =
+    [...deliveryMap.entries()]
+      .map(([caseId, data]) => [
+        caseId,
+        data.orderId,
+        data.trackingUrl,
+        data.status
+      ]);
+
+  // =====================================
+  // UI UPDATE
+  // =====================================
+
+  const dt =
+    dataTablesMap["Delivery Details"];
+
+  dt.clear();
+
+  finalRows.forEach(r => {
+    dt.row.add(["", ...r]);
+  });
+
+  dt.draw(false);
+
+  // =====================================
+  // SAVE TO DB
+  // =====================================
+
+  const writeStore =
+    getStore("readwrite");
+
+  writeStore.put({
+    id: getTeamKey("Delivery Details"),
+    team: currentTeam,
+    sheetName: "Delivery Details",
+    rows: finalRows,
+    lastUpdated: new Date().toISOString()
+  });
 }
 
 async function buildCopySOOrders() {
