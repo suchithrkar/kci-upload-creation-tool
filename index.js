@@ -2266,8 +2266,8 @@ async function buildSortedTable() {
       const latestMO = getLatestMO(caseId, mo);
   
       if (latestMO) {
-        latestOrder = latestMO[0] || "";
-        orderStatus = latestMO[3] || "";
+        latestOrder = latestMO[moOrderIdx] || "";
+        orderStatus = latestMO[moStatusIdx] || "";
       }
     }
   
