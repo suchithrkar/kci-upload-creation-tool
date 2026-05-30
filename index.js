@@ -2683,28 +2683,10 @@ async function syncDeliveryDetailsTable() {
     
     if (data.resolution === "parts shipped") {
     
-      const latestOrderNormalized =
-        normalizeText(
-          stripOrderSuffix(data.latestOrder)
-        );
-    
       const moItem =
-        moItems.find(row => {
-    
-          const materialOrder =
-            normalizeText(
-              stripOrderSuffix(
-                row[moItemOrderIdx]
-              )
-            );
-    
-          const lineItem =
-            normalizeText(
-              row[moItemNameIdx]
-            );
-    
-          return (materialOrder === latestOrderNormalized);
-        });
+        moItems.find(row =>
+          row[moItemOrderIdx] === data.latestOrder
+        );
     
       trackingUrl =
         moItem?.[moItemUrlIdx] || "";
