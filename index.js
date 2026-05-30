@@ -126,6 +126,7 @@ const TABLE_SCHEMAS = {
   "Delivery Details": [
     "CaseID",
     "OrderID",
+    "Tracking URL",
     "CurrentStatus"
   ],
 
@@ -2620,6 +2621,7 @@ async function buildCopyTrackingURLs() {
 
   const delCaseIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
   const delOrderIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
+  const delTrackingUrlIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("Tracking URL");
   const delStatusIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
 
   // 1️⃣ Identify repair cases
@@ -2716,6 +2718,7 @@ async function buildCopyTrackingURLs() {
   delivery.forEach(r => {
     deliveryMap.set(r[delCaseIdx], {
       orderId: r[delOrderIdx] || "",
+      trackingUrl: r[delTrackingUrlIdx] || "",
       status: r[delStatusIdx] || ""
     });
   });
@@ -2726,6 +2729,7 @@ async function buildCopyTrackingURLs() {
     if (!deliveryMap.has(caseId)) {
       deliveryMap.set(caseId, {
         orderId: data.orderId,
+        trackingUrl: data.url,
         status: ""
       });
       continue;
@@ -2744,6 +2748,7 @@ async function buildCopyTrackingURLs() {
     } else {
       deliveryMap.set(caseId, {
         orderId: data.orderId,
+        trackingUrl: data.url,
         status: ""
       });
     }
@@ -2761,6 +2766,7 @@ async function buildCopyTrackingURLs() {
     .map(([caseId, d]) => [
       caseId,
       d.orderId,
+      d.trackingUrl || "",
       d.status
     ]);
 
@@ -2827,12 +2833,15 @@ async function processTrackingResultsFile(file) {
 
   const delCaseIdx =
     TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
-
-  const delStatusIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
-
+  
   const delOrderIdx =
     TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
+  
+  const delTrackingUrlIdx =
+    TABLE_SCHEMAS["Delivery Details"].indexOf("Tracking URL");
+  
+  const delStatusIdx =
+    TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
 
   // 2️⃣ Parse Tracking Results CSV
   const csvText = await file.text();
@@ -2845,9 +2854,15 @@ async function processTrackingResultsFile(file) {
   oldDelivery.forEach(r => {
     const caseId = r[delCaseIdx];
     const orderId = r[delOrderIdx] || "";
+    const trackingUrl = r[delTrackingUrlIdx] || "";
     const status = r[delStatusIdx] || "";
+  
     if (!caseId) return;
-    deliveryMap.set(caseId, { orderId, status });
+    deliveryMap.set(caseId, {
+      orderId,
+      trackingUrl,
+      status
+    });
   });
 
   // 4️⃣ Merge / update using Tracking Results CSV
@@ -2863,9 +2878,16 @@ async function processTrackingResultsFile(file) {
     );
 
     // Update existing or add new
-    const existing = deliveryMap.get(caseId) || { orderId: "", status: "" };
+    const existing =
+      deliveryMap.get(caseId) || {
+        orderId: "",
+        trackingUrl: "",
+        status: ""
+      };
+    
     deliveryMap.set(caseId, {
       orderId: existing.orderId,
+      trackingUrl: existing.trackingUrl,
       status: normalizeTrackingStatus(status)
     });
   });
@@ -2886,6 +2908,7 @@ async function processTrackingResultsFile(file) {
     ([caseId, data]) => [
       caseId,
       data.orderId || "",
+      data.trackingUrl || "",
       data.status || ""
     ]
   );
