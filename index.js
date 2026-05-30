@@ -2680,17 +2680,35 @@ async function syncDeliveryDetailsTable() {
     // =====================================
     // PARTS SHIPPED
     // =====================================
-
+    
     if (data.resolution === "parts shipped") {
-
-      const moItem =
-        moItems.find(row =>
-          row[moItemOrderIdx] === data.latestOrder &&
-          normalizeText(
-            row[moItemNameIdx]
-          ).endsWith("- 1")
+    
+      const latestOrderNormalized =
+        normalizeText(
+          stripOrderSuffix(data.latestOrder)
         );
-
+    
+      const moItem =
+        moItems.find(row => {
+    
+          const materialOrder =
+            normalizeText(
+              stripOrderSuffix(
+                row[moItemOrderIdx]
+              )
+            );
+    
+          const lineItem =
+            normalizeText(
+              row[moItemNameIdx]
+            );
+    
+          return (
+            materialOrder === latestOrderNormalized &&
+            lineItem.endsWith("- 1")
+          );
+        });
+    
       trackingUrl =
         moItem?.[moItemUrlIdx] || "";
     }
