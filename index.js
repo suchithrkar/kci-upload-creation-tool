@@ -3704,7 +3704,7 @@ async function buildRepairCases() {
               ?.[9] || ""
           )
         : "",
-      delivery.find(x => x[0] === caseId)?.[2] || "",
+      delivery.find(x => x[0] === caseId)?.[3] || "",
       partNumber,
       partName,
       d[16],
