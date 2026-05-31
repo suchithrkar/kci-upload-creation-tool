@@ -2721,13 +2721,18 @@ async function syncDeliveryDetailsTable() {
     
     if (data.resolution === "parts shipped") {
     
-      const moItem =
-        moItems.find(row =>
+      const matchingItems =
+        moItems.filter(row =>
           row[moItemOrderIdx] === data.latestOrder
         );
     
+      const moItemWithUrl =
+        matchingItems.find(row =>
+          row[moItemUrlIdx]
+        );
+    
       trackingUrl =
-        moItem?.[moItemUrlIdx] || "";
+        moItemWithUrl?.[moItemUrlIdx] || "";
     }
 
     // =====================================
