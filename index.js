@@ -2684,89 +2684,13 @@ async function syncDeliveryDetailsTable() {
     
     if (data.resolution === "parts shipped") {
     
-      console.log(" ");
-      console.log("=====================================");
-      console.log("PARTS SHIPPED CASE START");
-      console.log("=====================================");
-    
-      console.log("Case ID:", caseId);
-    
-      console.log("Latest Order from Sorted:",
-        data.latestOrder
-      );
-    
-      // =====================================
-      // FIND MATCHING MO ITEMS
-      // =====================================
-    
-      const matchingItems =
-        moItems.filter(row => {
-    
-          const materialOrder =
-            row[moItemOrderIdx];
-    
-          const isMatch =
-            materialOrder === data.latestOrder;
-    
-          // LOG EVERY COMPARISON
-          console.log({
-            comparingMaterialOrder: materialOrder,
-            latestOrder: data.latestOrder,
-            matched: isMatch
-          });
-    
-          return isMatch;
-        });
-    
-      console.log("Matching MO Items Count:",
-        matchingItems.length
-      );
-    
-      console.log("Matching MO Items:",
-        matchingItems
-      );
-    
-      // =====================================
-      // TAKE FIRST MATCH
-      // =====================================
-    
       const moItem =
-        matchingItems[0];
-    
-      console.log("Selected First Match:",
-        moItem
-      );
-    
-      // =====================================
-      // EXTRACT TRACKING URL
-      // =====================================
+        moItems.find(row =>
+          row[moItemOrderIdx] === data.latestOrder
+        );
     
       trackingUrl =
         moItem?.[moItemUrlIdx] || "";
-    
-      console.log("Tracking URL Column Index:",
-        moItemUrlIdx
-      );
-    
-      console.log("Extracted Tracking URL:",
-        trackingUrl
-      );
-    
-      // =====================================
-      // FINAL UPSERT DATA
-      // =====================================
-    
-      console.log("Final Delivery Row:", [
-        caseId,
-        data.latestOrder,
-        trackingUrl,
-        ""
-      ]);
-    
-      console.log("=====================================");
-      console.log("PARTS SHIPPED CASE END");
-      console.log("=====================================");
-      console.log(" ");
     }
 
     // =====================================
