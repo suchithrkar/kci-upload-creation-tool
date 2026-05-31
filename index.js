@@ -2670,7 +2670,8 @@ async function syncDeliveryDetailsTable() {
 
     if (
       existing &&
-      existing.orderId === data.latestOrder
+      existing.orderId === data.latestOrder &&
+      existing.trackingUrl
     ) {
       return;
     }
