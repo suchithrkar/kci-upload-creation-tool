@@ -2149,6 +2149,9 @@ async function buildSortedTable() {
   const mo =
     teamData.find(r => r.sheetName === "MO")?.rows || [];
 
+  const existingSorted =
+    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
+
   const workgroupMap =
     teamData.find(r => r.sheetName === "WORKGROUP_MAP")
       ?.data || [];
@@ -2170,11 +2173,32 @@ async function buildSortedTable() {
   const moStatusIdx =
     TABLE_SCHEMAS["MO"].indexOf("Order Status");
 
+  const sortedCaseIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
+  
+  const sortedStatusIdx =
+    TABLE_SCHEMAS["Sorted"].indexOf("Order Status");
+
   const validResolutions = [
     "onsite solution",
     "offsite solution",
     "parts shipped"
   ];
+
+  const existingSortedMap = new Map();
+  
+  existingSorted.forEach(row => {
+  
+    const caseId =
+      row[sortedCaseIdx];
+  
+    if (!caseId) return;
+  
+    existingSortedMap.set(caseId, {
+      orderStatus:
+        row[sortedStatusIdx] || ""
+    });
+  });
 
   const finalRows = [];
   
@@ -2259,7 +2283,12 @@ async function buildSortedTable() {
         const latestSO = validSOs[0];
   
         latestOrder = latestSO[4] || "";
-        orderStatus = "";
+        
+        const existing =
+          existingSortedMap.get(caseId);
+        
+        orderStatus =
+          existing?.orderStatus || "";
       }
     }
   
