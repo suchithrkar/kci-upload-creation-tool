@@ -985,6 +985,14 @@ document.getElementById('processBtn').addEventListener('click', async () => {
   
     // ✅ FULL overwrite ONLY for KCI Excel
     const store = getStore("readwrite");
+
+    // Read old Sorted FIRST and Store old Sorted rows in memory
+    const existingSorted = await new Promise(res => {
+        const req = store.get(getTeamKey("Sorted"));
+        req.onsuccess = () =>
+          res(req.result?.rows || []);
+      });
+    window.previousSortedRows = existingSorted;
     
     // 🔥 HARD DELETE old KCI sheets from IndexedDB
     ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases", "Sorted"].forEach(sheet => {
@@ -2150,7 +2158,7 @@ async function buildSortedTable() {
     teamData.find(r => r.sheetName === "MO")?.rows || [];
 
   const existingSorted =
-    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
+    window.previousSortedRows || [];
 
   const workgroupMap =
     teamData.find(r => r.sheetName === "WORKGROUP_MAP")
