@@ -3005,115 +3005,119 @@ function parseTrackingResultsCSV(text) {
 }
 
 async function processTrackingResultsFile(file) {
-  // 1️⃣ Load existing data
+
+  // =====================================
+  // LOAD EXISTING DATA
+  // =====================================
+
   const store = getStore("readonly");
+
   const allData = await new Promise(res => {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
-  
-  // 🔒 TEAM FILTER
-  const teamData = allData.filter(r => r.team === currentTeam);
-  
-  const dump =
-    teamData.find(r => r.sheetName === "Dump")?.rows || [];
-  
+
+  const teamData =
+    allData.filter(r => r.team === currentTeam);
+
   const oldDelivery =
     teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
 
-  const dumpCaseIdx =
-    TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+  // =====================================
+  // COLUMN INDEXES
+  // =====================================
 
   const delCaseIdx =
     TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
-  
-  const delOrderIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
-  
-  const delTrackingUrlIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("Tracking URL");
-  
+
   const delStatusIdx =
     TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
 
-  // 2️⃣ Parse Tracking Results CSV
-  const csvText = await file.text();
-  const trackingCSVMap = parseTrackingResultsCSV(csvText);
-  // Map<CaseID, CurrentStatus>
+  // =====================================
+  // PARSE TRACKING RESULTS CSV
+  // =====================================
 
-  // 3️⃣ Build a map from existing Delivery Details
-  const deliveryMap = new Map();
+  const csvText =
+    await file.text();
 
-  oldDelivery.forEach(r => {
-    const caseId = r[delCaseIdx];
-    const orderId = r[delOrderIdx] || "";
-    const trackingUrl = r[delTrackingUrlIdx] || "";
-    const status = r[delStatusIdx] || "";
-  
-    if (!caseId) return;
-    deliveryMap.set(caseId, {
-      orderId,
-      trackingUrl,
-      status
-    });
-  });
+  const trackingCSVMap =
+    parseTrackingResultsCSV(csvText);
 
-  // 4️⃣ Merge / update using Tracking Results CSV
+  // =====================================
+  // CLONE EXISTING DELIVERY DETAILS
+  // =====================================
+
+  const finalRows =
+    oldDelivery.map(r => [...r]);
+
+  // =====================================
+  // UPDATE MATCHING CASES ONLY
+  // =====================================
+
   let processed = 0;
-  const total = trackingCSVMap.size;
 
-  trackingCSVMap.forEach((status, caseId) => {
+  const total =
+    finalRows.length;
+
+  finalRows.forEach(row => {
+
     processed++;
+
     updateProgressContext(
       processed,
       total,
       `Updating Delivery Details (${processed}/${total})`
     );
 
-    // Update existing or add new
-    const existing =
-      deliveryMap.get(caseId) || {
-        orderId: "",
-        trackingUrl: "",
-        status: ""
-      };
-    
-    deliveryMap.set(caseId, {
-      orderId: existing.orderId,
-      trackingUrl: existing.trackingUrl,
-      status: normalizeTrackingStatus(status)
-    });
-  });
+    const caseId =
+      row[delCaseIdx];
 
-  // 5️⃣ Cleanup: remove cases NOT present in Dump
-  const validDumpCases = new Set(
-    dump.map(r => r[dumpCaseIdx])
-  );
-
-  [...deliveryMap.keys()].forEach(caseId => {
-    if (!validDumpCases.has(caseId)) {
-      deliveryMap.delete(caseId);
+    if (!caseId) {
+      return;
     }
+
+    // CASE NOT FOUND IN CSV
+    if (!trackingCSVMap.has(caseId)) {
+      return;
+    }
+
+    const csvStatus =
+      normalizeTrackingStatus(
+        trackingCSVMap.get(caseId)
+      );
+
+    // SKIP BLANK CSV STATUS
+    if (!csvStatus) {
+      return;
+    }
+
+    // UPDATE CURRENT STATUS
+    row[delStatusIdx] =
+      csvStatus;
   });
 
-  // 6️⃣ Build final Delivery Details rows
-  const finalRows = [...deliveryMap.entries()].map(
-    ([caseId, data]) => [
-      caseId,
-      data.orderId || "",
-      data.trackingUrl || "",
-      data.status || ""
-    ]
-  );
+  // =====================================
+  // UPDATE UI TABLE
+  // =====================================
 
-  // 7️⃣ Update UI table
-  const dt = dataTablesMap["Delivery Details"];
+  const dt =
+    dataTablesMap["Delivery Details"];
+
   dt.clear();
-  finalRows.forEach(r => dt.row.add(["", ...r]));
+
+  finalRows.forEach(r => {
+    dt.row.add(["", ...r]);
+  });
+
   dt.draw(false);
 
-  // 8️⃣ Save to IndexedDB
-  const writeStore = getStore("readwrite");
+  // =====================================
+  // SAVE TO INDEXEDDB
+  // =====================================
+
+  const writeStore =
+    getStore("readwrite");
+
   writeStore.put({
     id: getTeamKey("Delivery Details"),
     team: currentTeam,
