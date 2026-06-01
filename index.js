@@ -2,9 +2,6 @@ let kciFile = null;
 let csoFile = null;
 let trackingFile = null;
 let workbookCache = null;
-let invalidCSOEntries = [];
-let validCSOOutput = "";
-let showingInvalidCSOs = false;
 let tablesMap = {};
 let currentTeam = null;
 let isAddingTeamInline = false;
@@ -47,8 +44,7 @@ const TABLE_SCHEMAS = {
     "Queue",
     "OTC Code",
     "Product Serial Number",
-    "ProductName",
-    "Workgroup (Owning User) (User)"
+    "ProductName"
   ],
 
   "WO": [
@@ -106,15 +102,6 @@ const TABLE_SCHEMAS = {
     "OTC Code"
   ],
 
-  "Sorted": [
-    "Case ID",
-    "Case Resolution Code",
-    "Latest Order",
-    "Order Status",
-    "Workgroup",
-    "Team"
-  ],
-
   "CSO Status": [
     "Case ID",
     "CSO",
@@ -126,7 +113,6 @@ const TABLE_SCHEMAS = {
   "Delivery Details": [
     "CaseID",
     "OrderID",
-    "Tracking URL",
     "CurrentStatus"
   ],
 
@@ -201,8 +187,7 @@ const DUMP_HEADER_DISPLAY_MAP = {
   "Full Name (Primary Contact) (Contact)": "Customer Name",
   "Full Name (Owning User) (User)": "Case Owner",
   "ProductName": "Product Name",
-  "Product Serial Number": "Serial Number",
-  "Workgroup (Owning User) (User)": "Workgroup"
+  "Product Serial Number": "Serial Number"
 };
 
 const DB_NAME = "KCI_CASE_TRACKER_DB";
@@ -275,9 +260,7 @@ async function setCurrentTeam(team) {
 
   updateProcessButtonState();
   // ✅ ENABLE action bar buttons once team is selected
-  document.querySelectorAll(
-    ".action-bar button, #workgroupBtn"
-  ).forEach(btn => {
+  document.querySelectorAll(".action-bar button").forEach(btn => {
     btn.disabled = false;
   });
 }
@@ -466,7 +449,7 @@ async function deleteTeam(team) {
       );
     
       document.querySelectorAll(
-        ".action-bar button, #processBtn, #workgroupBtn"
+        ".action-bar button, #processBtn"
       ).forEach(btn => btn.disabled = true);
     
       // Explicitly refresh dropdown (now empty)
@@ -985,17 +968,9 @@ document.getElementById('processBtn').addEventListener('click', async () => {
   
     // ✅ FULL overwrite ONLY for KCI Excel
     const store = getStore("readwrite");
-
-    // Read old Sorted FIRST and Store old Sorted rows in memory
-    const existingSorted = await new Promise(res => {
-        const req = store.get(getTeamKey("Sorted"));
-        req.onsuccess = () =>
-          res(req.result?.rows || []);
-      });
-    window.previousSortedRows = existingSorted;
     
     // 🔥 HARD DELETE old KCI sheets from IndexedDB
-    ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases", "Sorted"].forEach(sheet => {
+    ["Dump", "WO", "MO", "MO Items", "SO", "Closed Cases"].forEach(sheet => {
       store.delete(getTeamKey(sheet));
       dataTablesMap[sheet]?.clear().draw(false);
     });
@@ -1237,8 +1212,6 @@ function processExcelFile(file, allowedSheets) {
       };
 
     await buildSheetTables(filteredWorkbook);
-    await buildSortedTable();
-    await syncCSOStatusTable();
     resolve();
     };
 
@@ -1334,209 +1307,160 @@ function parseGNProCSV(text) {
 }
 
 function stripOrderSuffix(orderId) {
-
-  let cleaned =
-    String(orderId || "").trim();
-
-  // REMOVE LINE ITEM SUFFIX
-  cleaned =
-    cleaned.replace(/-\d+$/, "");
-
-  // REMOVE LEADING/TRAILING
-  // SPECIAL CHARACTERS & SPACES
-  cleaned =
-    cleaned.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "");
-
-  return cleaned;
+  return String(orderId || "").replace(/-0\d$/, "");
 }
 
 async function processGNProCSOFile(file) {
-
-  // =====================================
-  // LOAD EXISTING DATA
-  // =====================================
-
   const store = getStore("readonly");
-
   const allData = await new Promise(res => {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
+  
+  // 🔒 TEAM FILTER
+  const teamData = allData.filter(r => r.team === currentTeam);
+  
+  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
+  const wo = teamData.find(r => r.sheetName === "WO")?.rows || [];
+  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
+  const oldCso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
-  const teamData =
-    allData.filter(r => r.team === currentTeam);
-
-  let csoRows =
-    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
-
-  let sortedRows =
-    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
-
-  // =====================================
-  // PARSE GNPRO CSV
-  // =====================================
-
+  // Build GNPro CSV map
   const csvText = await file.text();
+  const gnproMap = parseGNProCSV(csvText);
 
-  const gnproMap =
-    parseGNProCSV(csvText);
+  const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+  const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
+  const dumpByCaseId = buildDumpCaseMap(dump, dumpCaseIdx);
 
-  // =====================================
-  // COLUMN INDEXES
-  // =====================================
+  const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
+  const soDateIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
+  const soOrderIdx = TABLE_SCHEMAS["SO"].indexOf("Order Reference ID");
 
-  const csoCaseIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+  const oldCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+  const oldStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+  const oldTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
 
-  const csoStatusIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+  // 🔥 FULL RESOLUTION RECALCULATION (WO + SO + MO)
+  
+  // 1️⃣ Identify repair cases from Dump
+  const repairCaseIds = [
+    ...new Set(
+      dump
+        .filter(r => isRepairResolution(r[dumpResIdx]))
+        .map(r => r[dumpCaseIdx])
+    )
+  ];
+  
+  // 2️⃣ Recalculate resolution per case
+  const recalculatedCases = repairCaseIds.map(caseId => {
+    const dumpRow = dumpByCaseId[caseId];
+    if (!dumpRow) return null;
+  
+    const derivedResolution = getCalculatedResolution(
+      caseId,
+      wo,
+      so,
+      mo,
+      dumpRow[dumpResIdx]
+    );
+  
+    return {
+      caseId,
+      resolution: derivedResolution
+    };
+  }).filter(Boolean);
+  
+  // 3️⃣ Filter only Offsite Solution
+  const offsiteCases = recalculatedCases
+    .filter(c => c.resolution === "Offsite Solution")
+    .map(c => c.caseId);
 
-  const csoTrackingIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
-
-  const csoRepairIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
-
-  const sortedCaseIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
-
-  const sortedOrderStatusIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Order Status");
-
-  // =====================================
-  // BUILD FAST SORTED LOOKUP
-  // =====================================
-
-  const sortedMap = new Map();
-
-  sortedRows.forEach(row => {
-
-    const caseId = row[sortedCaseIdx];
-
-    if (!caseId) return;
-
-    sortedMap.set(caseId, row);
-  });
-
-  // =====================================
-  // UPDATE EXISTING CSO ROWS
-  // =====================================
+  const finalRows = [];
 
   let processed = 0;
-  const total = csoRows.length;
-
-  csoRows.forEach(csoRow => {
-
+  const total = offsiteCases.length;
+  
+  offsiteCases.forEach(caseId => {
     processed++;
-
     updateProgressContext(
       processed,
       total,
-      `Updating CSO Status (${processed}/${total})`
+      `Processing CSO cases (${processed}/${total})`
     );
+    // 🔎 Filter valid SO rows (must have date + order id)
+    const validSoRows = so.filter(r =>
+      r[soCaseIdx] === caseId &&
+      r[soDateIdx] &&
+      r[soOrderIdx]
+    );
+    
+    if (!validSoRows.length) return;
+    
+    // Sort by Date and Time Submitted DESC
+    const latestSO = validSoRows.sort((a, b) =>
+      new Date(b[soDateIdx]) - new Date(a[soDateIdx])
+    )[0];
+    
+    const cso = stripOrderSuffix(latestSO[soOrderIdx]);
 
-    const caseId =
-      csoRow[csoCaseIdx];
+    let status = "Not Found";
+    let tracking = "";
 
-    if (!caseId) return;
-
-    // CSV ENTRY NOT FOUND
-    const csvRow =
-      gnproMap.get(caseId);
-
-    if (!csvRow) {
-      return;
+    const oldRow = oldCso.find(r => r[oldCaseIdx] === caseId);
+    if (oldRow) {
+      const oldStatus = normalizeText(oldRow[oldStatusIdx]);
+      if (
+        oldStatus === "delivered" ||
+        oldStatus === "order cancelled, not to be reopened"
+      ) {
+        status = formatSentenceCase(oldRow[oldStatusIdx]);
+        tracking = oldRow[oldTrackIdx];
+        finalRows.push([
+          caseId,
+          cso,
+          status,
+          tracking,
+          oldRow[4] || ""   // Repair Status (if exists)
+        ]);
+        return;
+      }
     }
 
-    // =====================================
-    // UPDATE CSO STATUS TABLE
-    // =====================================
-
-    csoRow[csoStatusIdx] =
-      csvRow.status || "";
-
-    csoRow[csoTrackingIdx] =
-      csvRow.tracking || "";
-
-    csoRow[csoRepairIdx] =
-      csvRow.repairStatus || "";
-
-    // =====================================
-    // UPDATE SORTED TABLE
-    // =====================================
-
-    const sortedRow =
-      sortedMap.get(caseId);
-
-    if (sortedRow) {
-
-      sortedRow[sortedOrderStatusIdx] =
-        csvRow.status || "";
+    const csvRow = gnproMap.get(caseId);
+    let repairStatus = "";
+    
+    if (csvRow) {
+      status = csvRow.status;
+      tracking = csvRow.tracking;
+      repairStatus = csvRow.repairStatus || "";
     }
+    
+    finalRows.push([
+      caseId,
+      cso,
+      status,
+      tracking,
+      repairStatus
+    ]);
   });
 
-  // =====================================
-  // UPDATE CSO STATUS UI
-  // =====================================
+  // Update UI
+  const dt = dataTablesMap["CSO Status"];
+  dt.clear();
+  finalRows.forEach(r => dt.row.add(["", ...r]));
+  dt.draw(false);
 
-  const csoDT =
-    dataTablesMap["CSO Status"];
-
-  csoDT.clear();
-
-  csoRows.forEach(r => {
-    csoDT.row.add(["", ...r]);
-  });
-
-  csoDT.draw(false);
-
-  // =====================================
-  // UPDATE SORTED UI
-  // =====================================
-
-  const sortedDT =
-    dataTablesMap["Sorted"];
-
-  sortedDT.clear();
-
-  sortedRows.forEach(r => {
-    sortedDT.row.add(["", ...r]);
-  });
-
-  sortedDT.draw(false);
-
-  // =====================================
-  // SAVE CSO STATUS
-  // =====================================
-
-  const writeStore =
-    getStore("readwrite");
-
+  // Save to IndexedDB
+  const writeStore = getStore("readwrite");
   writeStore.put({
     id: getTeamKey("CSO Status"),
     team: currentTeam,
     sheetName: "CSO Status",
-    rows: csoRows,
+    rows: finalRows,
     lastUpdated: new Date().toISOString()
   });
-
-  // =====================================
-  // SAVE SORTED
-  // =====================================
-
-  writeStore.put({
-    id: getTeamKey("Sorted"),
-    team: currentTeam,
-    sheetName: "Sorted",
-    rows: sortedRows,
-    lastUpdated: new Date().toISOString()
-  });
-
-  // =====================================
-  // SYNC DELIVERY DETAILS
-  // =====================================
-  
-  await syncDeliveryDetailsTable();
 }
 
 function loadDataFromDB() {
@@ -1775,6 +1699,7 @@ async function buildClosedCasesAgentFilter(rows) {
 
 function buildClosedCasesSummary(rows) {
   const month = document.getElementById("ccMonthSelect").value;
+  const agentSelect = document.getElementById("ccAgentSelect");
 
   const selectedAgents =
     [...document.querySelectorAll("#ccAgentBox input:checked")]
@@ -1875,6 +1800,7 @@ function attachDrilldownClicks(rows) {
 }
 
 function buildDrilldown(rows, date) {
+  const agentSelect = document.getElementById("ccAgentSelect");
   const selectedAgents =
     [...document.querySelectorAll("#ccAgentBox input:checked")]
       .map(cb => cb.value);
@@ -2134,399 +2060,139 @@ function getCalculatedResolution(caseId, wo, so, mo, dumpResolution) {
   return dumpResolution;
 }
 
-async function buildSortedTable() {
-
-  const store = getStore("readonly");
-
-  const all = await new Promise(res => {
-    const req = store.getAll();
-    req.onsuccess = () => res(req.result);
-  });
-
-  const teamData = all.filter(r => r.team === currentTeam);
-
-  const dump =
-    teamData.find(r => r.sheetName === "Dump")?.rows || [];
-
-  const wo =
-    teamData.find(r => r.sheetName === "WO")?.rows || [];
-
-  const so =
-    teamData.find(r => r.sheetName === "SO")?.rows || [];
-
-  const mo =
-    teamData.find(r => r.sheetName === "MO")?.rows || [];
-
-  const existingSorted =
-    window.previousSortedRows || [];
-
-  const workgroupMap =
-    teamData.find(r => r.sheetName === "WORKGROUP_MAP")
-      ?.data || [];
-
-  const dumpCaseIdx =
-    TABLE_SCHEMAS["Dump"].indexOf("Case ID");
-
-  const dumpResolutionIdx =
-    TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
-
-  const dumpWorkgroupIdx =
-    TABLE_SCHEMAS["Dump"].indexOf(
-      "Workgroup (Owning User) (User)"
-    );
-
-  const moOrderIdx =
-    TABLE_SCHEMAS["MO"].indexOf("Order Number");
-  
-  const moStatusIdx =
-    TABLE_SCHEMAS["MO"].indexOf("Order Status");
-
-  const sortedCaseIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
-  
-  const sortedStatusIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Order Status");
-
-  const validResolutions = [
-    "onsite solution",
-    "offsite solution",
-    "parts shipped"
-  ];
-
-  const existingSortedMap = new Map();
-  
-  existingSorted.forEach(row => {
-  
-    const caseId =
-      row[sortedCaseIdx];
-  
-    if (!caseId) return;
-  
-    existingSortedMap.set(caseId, {
-      orderStatus:
-        row[sortedStatusIdx] || ""
-    });
-  });
-
-  const finalRows = [];
-  
-  dump.forEach(row => {
-  
-    const caseId = row[dumpCaseIdx];
-    const dumpResolution = row[dumpResolutionIdx];
-  
-    if (
-      !validResolutions.includes(
-        normalizeText(dumpResolution)
-      )
-    ) {
-      return;
-    }
-  
-    const calculatedResolution =
-      getCalculatedResolution(
-        caseId,
-        wo,
-        so,
-        mo,
-        dumpResolution
-      );
-
-    const workgroup =
-      row[dumpWorkgroupIdx] || "";
-    
-    const assignedTeam =
-      workgroupMap.find(team =>
-        team.workgroups.some(w =>
-          normalizeText(w) === normalizeText(workgroup)
-        )
-      )?.name || "";
-  
-    let latestOrder = "";
-    let orderStatus = "";
-  
-    // =====================================
-    // ONSITE SOLUTION → WO
-    // =====================================
-  
-    if (calculatedResolution === "Onsite Solution") {
-  
-      const validWOs = wo.filter(r =>
-        r[0] === caseId &&
-        r[1] &&
-        r[6]
-      );
-  
-      if (validWOs.length) {
-  
-        validWOs.sort((a, b) =>
-          new Date(b[6]) - new Date(a[6])
-        );
-  
-        const latestWO = validWOs[0];
-  
-        latestOrder = latestWO[1] || "";
-        orderStatus = latestWO[5] || "";
-      }
-    }
-  
-    // =====================================
-    // OFFSITE SOLUTION → SO
-    // =====================================
-  
-    else if (calculatedResolution === "Offsite Solution") {
-  
-      const validSOs = so.filter(r =>
-        r[0] === caseId &&
-        r[4] &&
-        r[2]
-      );
-  
-      if (validSOs.length) {
-  
-        validSOs.sort((a, b) =>
-          new Date(b[2]) - new Date(a[2])
-        );
-  
-        const latestSO = validSOs[0];
-  
-        latestOrder = latestSO[4] || "";
-        
-        const existing =
-          existingSortedMap.get(caseId);
-        
-        orderStatus =
-          existing?.orderStatus || "";
-      }
-    }
-  
-    // =====================================
-    // PARTS SHIPPED → MO
-    // =====================================
-  
-    else if (calculatedResolution === "Parts Shipped") {
-  
-      const latestMO = getLatestMO(caseId, mo);
-  
-      if (latestMO) {
-        latestOrder = latestMO[moOrderIdx] || "";
-        orderStatus = latestMO[moStatusIdx] || "";
-      }
-    }
-  
-    finalRows.push([
-      caseId,
-      calculatedResolution,
-      latestOrder,
-      orderStatus,
-      workgroup,
-      assignedTeam
-    ]);
-  });
-
-  // ===== UI UPDATE =====
-
-  const dt = dataTablesMap["Sorted"];
-
-  dt.clear();
-
-  finalRows.forEach(r => {
-    dt.row.add(["", ...r]);
-  });
-
-  dt.draw(false);
-
-  // ===== DB SAVE =====
-
-  getStore("readwrite").put({
-    id: getTeamKey("Sorted"),
-    team: currentTeam,
-    sheetName: "Sorted",
-    rows: finalRows,
-    lastUpdated: new Date().toISOString()
-  });
-}
-
-async function syncCSOStatusTable() {
-
+async function buildCopySOOrders() {
   const readStore = getStore("readonly");
-
   const allData = await new Promise(res => {
     const req = readStore.getAll();
     req.onsuccess = () => res(req.result);
   });
 
-  const teamData =
-    allData.filter(r => r.team === currentTeam);
+  const teamData = allData.filter(r => r.team === currentTeam);
 
-  // =====================================
-  // LOAD DATA
-  // =====================================
+  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
+  const wo = teamData.find(r => r.sheetName === "WO")?.rows || [];
+  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
+  let cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
 
-  const sorted =
-    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
+  const dumpIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
+  const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+  const dumpByCaseId = buildDumpCaseMap(dump, dumpCaseIdx);
 
-  let cso =
-    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  const soCaseIdx = TABLE_SCHEMAS["SO"].indexOf("Case ID");
+  const soDateIdx = TABLE_SCHEMAS["SO"].indexOf("Date and Time Submitted");
+  const soOrderIdx = TABLE_SCHEMAS["SO"].indexOf("Order Reference ID");
 
-  // =====================================
-  // COLUMN INDEXES
-  // =====================================
+  const csoCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+  const csoOrderIdx = TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
+  const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
 
-  const sortedCaseIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
+  const repairCaseIds = [
+    ...new Set(
+      dump
+        .filter(r => isRepairResolution(r[dumpIdx]))
+        .map(r => r[dumpCaseIdx])
+    )
+  ];
 
-  const sortedResolutionIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case Resolution Code");
+  // 🔥 FULL RESOLUTION RECALCULATION (WO + SO + MO)
+  
+  const recalculatedCases = repairCaseIds.map(caseId => {
+    const dumpRow = dumpByCaseId[caseId];
+    if (!dumpRow) return null;
+  
+    const derivedResolution = getCalculatedResolution(
+      caseId,
+      wo,
+      so,
+      mo,
+      dumpRow[dumpIdx]
+    );
+  
+    return {
+      caseId,
+      resolution: derivedResolution
+    };
+  }).filter(Boolean);
+  
+  // Now filter only Offsite Solution cases
+  const offsiteCases = recalculatedCases
+    .filter(c => c.resolution === "Offsite Solution")
+    .map(c => c.caseId);
 
-  const sortedOrderIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Latest Order");
-
-  const csoCaseIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
-
-  const csoOrderIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
-
-  const csoStatusIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
-
-  const csoTrackingIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
-
-  const csoRepairIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Repair Status");
-
-  // =====================================
-  // BUILD OFFSITE CASE MAP FROM SORTED
-  // =====================================
-
-  const offsiteMap = new Map();
-
-  sorted.forEach(row => {
-
-    const resolution =
-      normalizeText(row[sortedResolutionIdx]);
-
-    if (resolution !== "offsite solution") {
-      return;
-    }
-
-    const caseId =
-      row[sortedCaseIdx];
-
-    const latestOrder =
-      stripOrderSuffix(row[sortedOrderIdx]);
-
-    if (!caseId || !latestOrder) {
-      return;
-    }
-
-    offsiteMap.set(caseId, latestOrder);
-  });
-
-  // =====================================
-  // REMOVE DUPLICATE CSO ROWS
-  // =====================================
-
-  const uniqueMap = new Map();
-
-  cso.forEach(row => {
-
-    const caseId = row[csoCaseIdx];
-
-    if (!caseId) return;
-
-    if (!uniqueMap.has(caseId)) {
-      uniqueMap.set(caseId, row);
-    }
-  });
-
-  cso = [...uniqueMap.values()];
-
-  // =====================================
-  // BUILD FAST CSO LOOKUP MAP
-  // =====================================
-
-  const csoMap = new Map();
-
-  cso.forEach(row => {
-
-    const caseId = row[csoCaseIdx];
-
-    if (!caseId) return;
-
-    csoMap.set(caseId, row);
-  });
-
-  // =====================================
-  // SYNC CSO TABLE WITH SORTED
-  // =====================================
-
+  const result = [];
   let csoUpdated = false;
 
-  offsiteMap.forEach((latestOrder, caseId) => {
+  offsiteCases.forEach(caseId => {
 
-    let csoRow = csoMap.get(caseId);
+    // 🔎 Filter valid SO rows (must have date + order id)
+    const validSoRows = so.filter(r =>
+      r[soCaseIdx] === caseId &&
+      r[soDateIdx] &&
+      r[soOrderIdx]
+    );
+    
+    if (!validSoRows.length) return;
+    
+    // Sort by Date and Time Submitted DESC
+    const latest = validSoRows.sort((a, b) =>
+      new Date(b[soDateIdx]) - new Date(a[soDateIdx])
+    )[0];
+    
+    const latestOrderId = stripOrderSuffix(latest[soOrderIdx]);
 
-    // NEW CASE
-    if (!csoRow) {
+    const matchingRows = cso.filter(r => r[csoCaseIdx] === caseId);
 
-      cso.push([
-        caseId,
-        latestOrder,
-        "",
-        "",
-        ""
-      ]);
-
+    // ===== CASE C: No CSO row exists =====
+    if (!matchingRows.length) {
+      cso.push([caseId, latestOrderId, "", "", ""]);
       csoUpdated = true;
+      result.push(`${caseId},${latestOrderId}`);
       return;
     }
 
-    const existingOrder =
-      stripOrderSuffix(csoRow[csoOrderIdx]);
-
-    // SAME ORDER
-    if (existingOrder === latestOrder) {
+    // ===== Remove duplicates if exist =====
+    if (matchingRows.length > 1) {
+      cso = cso.filter(r => r[csoCaseIdx] !== caseId);
+      cso.push([caseId, latestOrderId, "", "", ""]);
+      csoUpdated = true;
+      result.push(`${caseId},${latestOrderId}`);
       return;
     }
 
-    // ORDER CHANGED → RESET
-    csoRow[csoOrderIdx] = latestOrder;
+    const csoRow = matchingRows[0];
+    const existingOrder = stripOrderSuffix(csoRow[csoOrderIdx]);
 
+    // ===== CASE A: Order matches =====
+    if (existingOrder === latestOrderId) {
+
+      const status = normalizeText(csoRow[csoStatusIdx]);
+
+      if (
+        status === "delivered" ||
+        status === "order cancelled, not to be reopened"
+      ) {
+        return; // exclude
+      }
+
+      result.push(`${caseId},${latestOrderId}`);
+      return;
+    }
+
+    // ===== CASE B: Order differs → Replace & clear =====
+    csoRow[csoOrderIdx] = latestOrderId;
     csoRow[csoStatusIdx] = "";
-    csoRow[csoTrackingIdx] = "";
-    csoRow[csoRepairIdx] = "";
+    csoRow[3] = "";  // Tracking Number
+    csoRow[4] = "";  // Repair Status
 
     csoUpdated = true;
+    result.push(`${caseId},${latestOrderId}`);
   });
 
-  // =====================================
-  // REMOVE OBSOLETE CASES
-  // =====================================
-
-  const beforeCount = cso.length;
-
-  cso = cso.filter(row => {
-
-    const caseId = row[csoCaseIdx];
-
-    return offsiteMap.has(caseId);
-  });
-
-  if (cso.length !== beforeCount) {
-    csoUpdated = true;
-  }
-
-  // =====================================
-  // SAVE UPDATED CSO TABLE
-  // =====================================
-
+  // ===== Persist CSO changes if updated =====
   if (csoUpdated) {
 
     const writeStore = getStore("readwrite");
-
     writeStore.put({
       id: getTeamKey("CSO Status"),
       team: currentTeam,
@@ -2535,378 +2201,12 @@ async function syncCSOStatusTable() {
       lastUpdated: new Date().toISOString()
     });
 
-    // UI refresh
+    // Refresh UI
     const dt = dataTablesMap["CSO Status"];
-
     dt.clear();
-
-    cso.forEach(r => {
-      dt.row.add(["", ...r]);
-    });
-
+    cso.forEach(r => dt.row.add(["", ...r]));
     dt.draw(false);
   }
-}
-
-async function syncDeliveryDetailsTable() {
-
-  const store = getStore("readonly");
-
-  const allData = await new Promise(res => {
-    const req = store.getAll();
-    req.onsuccess = () => res(req.result);
-  });
-
-  const teamData =
-    allData.filter(r => r.team === currentTeam);
-
-  // =====================================
-  // LOAD TABLES
-  // =====================================
-
-  const sorted =
-    teamData.find(r => r.sheetName === "Sorted")?.rows || [];
-
-  const moItems =
-    teamData.find(r => r.sheetName === "MO Items")?.rows || [];
-
-  const cso =
-    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
-
-  let delivery =
-    teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
-
-  // =====================================
-  // COLUMN INDEXES
-  // =====================================
-
-  const sortedCaseIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
-
-  const sortedResolutionIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Case Resolution Code");
-
-  const sortedOrderIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Latest Order");
-
-  const sortedStatusIdx =
-    TABLE_SCHEMAS["Sorted"].indexOf("Order Status");
-
-  const moItemOrderIdx =
-    TABLE_SCHEMAS["MO Items"].indexOf("Material Order");
-
-  const moItemNameIdx =
-    TABLE_SCHEMAS["MO Items"].indexOf("MO Line Items Name");
-
-  const moItemUrlIdx =
-    TABLE_SCHEMAS["MO Items"].indexOf("Tracking Url");
-
-  const csoCaseIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
-
-  const csoTrackingIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
-
-  const delCaseIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
-
-  const delOrderIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
-
-  const delTrackingIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("Tracking URL");
-
-  const delStatusIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
-
-  // =====================================
-  // BUILD DESIRED LIST
-  // =====================================
-
-  const desiredMap = new Map();
-
-  sorted.forEach(row => {
-
-    const caseId =
-      row[sortedCaseIdx];
-
-    const resolution =
-      normalizeText(row[sortedResolutionIdx]);
-
-    const latestOrder =
-      row[sortedOrderIdx] || "";
-
-    const orderStatus =
-      normalizeText(row[sortedStatusIdx]);
-
-    if (!caseId || !latestOrder) {
-      return;
-    }
-
-    const isEligible =
-      (
-        resolution === "offsite solution" &&
-        orderStatus === "delivered"
-      )
-      ||
-      (
-        resolution === "parts shipped" &&
-        (
-          orderStatus === "closed" ||
-          orderStatus === "pod"
-        )
-      );
-
-    if (!isEligible) {
-      return;
-    }
-
-    desiredMap.set(caseId, {
-      resolution,
-      latestOrder
-    });
-  });
-
-  // =====================================
-  // BUILD DELIVERY MAP
-  // =====================================
-
-  const deliveryMap = new Map();
-
-  delivery.forEach(row => {
-
-    const caseId =
-      row[delCaseIdx];
-
-    if (!caseId) return;
-
-    deliveryMap.set(caseId, {
-      orderId:
-        row[delOrderIdx] || "",
-
-      trackingUrl:
-        row[delTrackingIdx] || "",
-
-      status:
-        row[delStatusIdx] || ""
-    });
-  });
-
-  // =====================================
-  // PROCESS DESIRED CASES
-  // =====================================
-
-  desiredMap.forEach((data, caseId) => {
-
-    const existing =
-      deliveryMap.get(caseId);
-
-    // =====================================
-    // SAME ORDER → DO NOTHING
-    // =====================================
-
-    if (
-      existing &&
-      existing.orderId === data.latestOrder &&
-      existing.trackingUrl
-    ) {
-      return;
-    }
-
-    let trackingUrl = "";
-
-    // =====================================
-    // PARTS SHIPPED
-    // =====================================
-    
-    if (data.resolution === "parts shipped") {
-    
-      const matchingItems =
-        moItems.filter(row =>
-          row[moItemOrderIdx] === data.latestOrder
-        );
-    
-      const moItemWithUrl =
-        matchingItems.find(row =>
-          row[moItemUrlIdx]
-        );
-    
-      trackingUrl =
-        moItemWithUrl?.[moItemUrlIdx] || "";
-    }
-
-    // =====================================
-    // OFFSITE SOLUTION
-    // =====================================
-
-    else if (
-      data.resolution === "offsite solution"
-    ) {
-
-      const csoRow =
-        cso.find(r =>
-          r[csoCaseIdx] === caseId
-        );
-
-      const trackingNumber =
-        csoRow?.[csoTrackingIdx] || "";
-
-      if (trackingNumber) {
-
-        trackingUrl =
-          "http://wwwapps.ups.com/WebTracking/processInputRequest" +
-          "?TypeOfInquiryNumber=T&InquiryNumber1=" +
-          trackingNumber;
-      }
-    }
-
-    // =====================================
-    // UPSERT / REBUILD
-    // =====================================
-
-    deliveryMap.set(caseId, {
-      orderId: data.latestOrder,
-      trackingUrl,
-      status: ""
-    });
-  });
-
-  // =====================================
-  // REMOVE OBSOLETE CASES
-  // =====================================
-
-  [...deliveryMap.keys()].forEach(caseId => {
-
-    if (!desiredMap.has(caseId)) {
-      deliveryMap.delete(caseId);
-    }
-  });
-
-  // =====================================
-  // BUILD FINAL ROWS
-  // =====================================
-
-  const finalRows =
-    [...deliveryMap.entries()]
-      .map(([caseId, data]) => [
-        caseId,
-        data.orderId,
-        data.trackingUrl,
-        data.status
-      ]);
-
-  // =====================================
-  // UI UPDATE
-  // =====================================
-
-  const dt =
-    dataTablesMap["Delivery Details"];
-
-  dt.clear();
-
-  finalRows.forEach(r => {
-    dt.row.add(["", ...r]);
-  });
-
-  dt.draw(false);
-
-  // =====================================
-  // SAVE TO DB
-  // =====================================
-
-  const writeStore =
-    getStore("readwrite");
-
-  writeStore.put({
-    id: getTeamKey("Delivery Details"),
-    team: currentTeam,
-    sheetName: "Delivery Details",
-    rows: finalRows,
-    lastUpdated: new Date().toISOString()
-  });
-}
-
-async function buildCopySOOrders() {
-
-  const readStore = getStore("readonly");
-
-  const allData = await new Promise(res => {
-    const req = readStore.getAll();
-    req.onsuccess = () => res(req.result);
-  });
-
-  const teamData =
-    allData.filter(r => r.team === currentTeam);
-
-  // =====================================
-  // LOAD DATA
-  // =====================================
-
-  let cso =
-    teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
-
-  // =====================================
-  // RESET INVALID CACHE
-  // =====================================
-
-  invalidCSOEntries = [];
-
-  // =====================================
-  // COLUMN INDEXES
-  // =====================================
-
-  const csoCaseIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
-
-  const csoOrderIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
-
-  const csoStatusIdx =
-    TABLE_SCHEMAS["CSO Status"].indexOf("Status");
-
-  // =====================================
-  // BUILD FINAL OUTPUT
-  // =====================================
-
-  const result = [];
-
-  cso.forEach(row => {
-
-    const caseId =
-      row[csoCaseIdx];
-
-    const orderId =
-      stripOrderSuffix(row[csoOrderIdx]);
-
-    const status =
-      normalizeText(row[csoStatusIdx]);
-
-    // EXCLUDE DELIVERED / CANCELLED
-    if (
-      status === "delivered" ||
-      status === "order cancelled, not to be reopened"
-    ) {
-      return;
-    }
-
-    // =====================================
-    // INVALID CSO CHECK
-    // =====================================
-
-    if (orderId.length !== 8) {
-
-      invalidCSOEntries.push({
-        caseId,
-        cso: orderId
-      });
-
-      return;
-    }
-
-    result.push(
-      `${caseId},${orderId}`
-    );
-  });
 
   return result.join("\n");
 }
@@ -2914,75 +2214,204 @@ async function buildCopySOOrders() {
 async function buildCopyTrackingURLs() {
 
   const store = getStore("readonly");
-
   const allData = await new Promise(res => {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
 
-  const teamData =
-    allData.filter(r => r.team === currentTeam);
+  const teamData = allData.filter(r => r.team === currentTeam);
 
-  // =====================================
-  // LOAD DELIVERY DETAILS
-  // =====================================
+  const dump = teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  const wo = teamData.find(r => r.sheetName === "WO")?.rows || [];
+  const so = teamData.find(r => r.sheetName === "SO")?.rows || [];
+  const mo = teamData.find(r => r.sheetName === "MO")?.rows || [];
+  const moItems = teamData.find(r => r.sheetName === "MO Items")?.rows || [];
+  const cso = teamData.find(r => r.sheetName === "CSO Status")?.rows || [];
+  let delivery = teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
 
-  const delivery =
-    teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
+  const dumpCaseIdx = TABLE_SCHEMAS["Dump"].indexOf("Case ID");
+  const dumpResIdx = TABLE_SCHEMAS["Dump"].indexOf("Case Resolution Code");
 
-  // =====================================
-  // COLUMN INDEXES
-  // =====================================
+  const moOrderIdx = TABLE_SCHEMAS["MO"].indexOf("Order Number");
+  const moCaseIdx = TABLE_SCHEMAS["MO"].indexOf("Case ID");
+  const moCreatedIdx = TABLE_SCHEMAS["MO"].indexOf("Created On");
+  const moStatusIdx = TABLE_SCHEMAS["MO"].indexOf("Order Status");
 
-  const delCaseIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
+  const moItemOrderIdx = TABLE_SCHEMAS["MO Items"].indexOf("Material Order");
+  const moItemNameIdx = TABLE_SCHEMAS["MO Items"].indexOf("MO Line Items Name");
+  const moItemUrlIdx = TABLE_SCHEMAS["MO Items"].indexOf("Tracking Url");
 
-  const delTrackingIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("Tracking URL");
+  const csoCaseIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Case ID");
+  const csoOrderIdx = TABLE_SCHEMAS["CSO Status"].indexOf("CSO");
+  const csoStatusIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Status");
+  const csoTrackIdx = TABLE_SCHEMAS["CSO Status"].indexOf("Tracking Number");
 
-  const delStatusIdx =
-    TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
+  const delCaseIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
+  const delOrderIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
+  const delStatusIdx = TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
 
-  // =====================================
-  // BUILD OUTPUT
-  // =====================================
+  // 1️⃣ Identify repair cases
+  const repairCaseIds = [
+    ...new Set(
+      dump
+        .filter(r => isRepairResolution(r[dumpResIdx]))
+        .map(r => r[dumpCaseIdx])
+    )
+  ];
 
-  const result = [];
+  // 2️⃣ FULL resolution recalculation
+  const partsShippedCases = repairCaseIds.filter(caseId => {
+    const dumpRow = dump.find(r => r[dumpCaseIdx] === caseId);
+    if (!dumpRow) return false;
 
-  delivery.forEach(row => {
-
-    const caseId =
-      row[delCaseIdx];
-
-    const trackingUrl =
-      row[delTrackingIdx];
-
-    const status =
-      normalizeText(row[delStatusIdx]);
-
-    // SKIP INVALID
-    if (!caseId || !trackingUrl) {
-      return;
-    }
-
-    // INCLUDE ONLY:
-    // 1. blank status
-    // 2. no status found
-
-    const isEligible =
-      !status ||
-      status === "no status found";
-
-    if (!isEligible) {
-      return;
-    }
-
-    result.push(
-      `${caseId} | ${trackingUrl}`
+    const derived = getCalculatedResolution(
+      caseId,
+      wo,
+      so,
+      mo,
+      dumpRow[dumpResIdx]
     );
+
+    return derived === "Parts Shipped";
   });
 
-  return result.join("\n");
+  // 3️⃣ Build MO list
+  const eligibleMap = new Map(); // caseId → {orderId, url, date}
+
+  partsShippedCases.forEach(caseId => {
+
+    const caseMOs = mo.filter(r => r[moCaseIdx] === caseId);
+    if (!caseMOs.length) return;
+
+    caseMOs.sort((a, b) =>
+      new Date(b[moCreatedIdx]) - new Date(a[moCreatedIdx])
+    );
+
+    const latestMO = caseMOs[0];
+    const status = normalizeText(latestMO[moStatusIdx]);
+
+    if (status !== "closed" && status !== "pod") return;
+
+    const orderId = latestMO[moOrderIdx];
+
+    const item = moItems.find(r =>
+      r[moItemOrderIdx] === orderId &&
+      normalizeText(r[moItemNameIdx]).endsWith("- 1")
+    );
+
+    if (!item || !item[moItemUrlIdx]) return;
+
+    eligibleMap.set(caseId, {
+      orderId,
+      url: item[moItemUrlIdx],
+      date: new Date(latestMO[moCreatedIdx])
+    });
+  });
+
+  // 4️⃣ Add CSO delivered (whichever latest wins)
+  cso.forEach(r => {
+
+    const caseId = r[csoCaseIdx];
+    const status = normalizeText(r[csoStatusIdx]);
+    const tracking = r[csoTrackIdx];
+
+    if (status !== "delivered" || !tracking) return;
+
+    const orderId = r[csoOrderIdx];
+    const date = new Date(); // no reliable date → treat as latest
+
+    const url =
+      "http://wwwapps.ups.com/WebTracking/processInputRequest" +
+      "?TypeOfInquiryNumber=T&InquiryNumber1=" + tracking;
+
+    if (!eligibleMap.has(caseId) ||
+        date > eligibleMap.get(caseId).date) {
+
+      eligibleMap.set(caseId, {
+        orderId,
+        url,
+        date
+      });
+    }
+  });
+
+  const previewMap = new Map(eligibleMap);
+
+  // 5️⃣ DELIVERY DETAILS SYNC LOGIC
+
+  const deliveryMap = new Map();
+
+  delivery.forEach(r => {
+    deliveryMap.set(r[delCaseIdx], {
+      orderId: r[delOrderIdx] || "",
+      status: r[delStatusIdx] || ""
+    });
+  });
+
+  // Process eligibleMap
+  for (const [caseId, data] of eligibleMap.entries()) {
+
+    if (!deliveryMap.has(caseId)) {
+      deliveryMap.set(caseId, {
+        orderId: data.orderId,
+        status: ""
+      });
+      continue;
+    }
+
+    const existing = deliveryMap.get(caseId);
+
+    if (existing.orderId === data.orderId) {
+
+      if (existing.status &&
+          normalizeText(existing.status) !== "no status found") {
+
+        previewMap.delete(caseId);
+      }
+
+    } else {
+      deliveryMap.set(caseId, {
+        orderId: data.orderId,
+        status: ""
+      });
+    }
+  }
+
+  // Remove obsolete rows
+  for (const caseId of deliveryMap.keys()) {
+    if (!eligibleMap.has(caseId)) {
+      deliveryMap.delete(caseId);
+    }
+  }
+
+  // Persist updated Delivery Details
+  const finalDeliveryRows = [...deliveryMap.entries()]
+    .map(([caseId, d]) => [
+      caseId,
+      d.orderId,
+      d.status
+    ]);
+
+  const writeStore = getStore("readwrite");
+  writeStore.put({
+    id: getTeamKey("Delivery Details"),
+    team: currentTeam,
+    sheetName: "Delivery Details",
+    rows: finalDeliveryRows,
+    lastUpdated: new Date().toISOString()
+  });
+
+  const dt = dataTablesMap["Delivery Details"];
+  dt.clear();
+  finalDeliveryRows.forEach(r => dt.row.add(["", ...r]));
+  dt.draw(false);
+
+  // 6️⃣ Return output
+  return [...previewMap.entries()]
+    .map(([caseId, d]) =>
+      `${caseId} | ${d.url}`
+    )
+    .join("\n");
 }
 
 function parseTrackingResultsCSV(text) {
@@ -3005,27 +2434,24 @@ function parseTrackingResultsCSV(text) {
 }
 
 async function processTrackingResultsFile(file) {
-
-  // =====================================
-  // LOAD EXISTING DATA
-  // =====================================
-
+  // 1️⃣ Load existing data
   const store = getStore("readonly");
-
   const allData = await new Promise(res => {
     const req = store.getAll();
     req.onsuccess = () => res(req.result);
   });
-
-  const teamData =
-    allData.filter(r => r.team === currentTeam);
-
+  
+  // 🔒 TEAM FILTER
+  const teamData = allData.filter(r => r.team === currentTeam);
+  
+  const dump =
+    teamData.find(r => r.sheetName === "Dump")?.rows || [];
+  
   const oldDelivery =
     teamData.find(r => r.sheetName === "Delivery Details")?.rows || [];
 
-  // =====================================
-  // COLUMN INDEXES
-  // =====================================
+  const dumpCaseIdx =
+    TABLE_SCHEMAS["Dump"].indexOf("Case ID");
 
   const delCaseIdx =
     TABLE_SCHEMAS["Delivery Details"].indexOf("CaseID");
@@ -3033,91 +2459,73 @@ async function processTrackingResultsFile(file) {
   const delStatusIdx =
     TABLE_SCHEMAS["Delivery Details"].indexOf("CurrentStatus");
 
-  // =====================================
-  // PARSE TRACKING RESULTS CSV
-  // =====================================
+  const delOrderIdx =
+    TABLE_SCHEMAS["Delivery Details"].indexOf("OrderID");
 
-  const csvText =
-    await file.text();
+  // 2️⃣ Parse Tracking Results CSV
+  const csvText = await file.text();
+  const trackingCSVMap = parseTrackingResultsCSV(csvText);
+  // Map<CaseID, CurrentStatus>
 
-  const trackingCSVMap =
-    parseTrackingResultsCSV(csvText);
+  // 3️⃣ Build a map from existing Delivery Details
+  const deliveryMap = new Map();
 
-  // =====================================
-  // CLONE EXISTING DELIVERY DETAILS
-  // =====================================
+  oldDelivery.forEach(r => {
+    const caseId = r[delCaseIdx];
+    const orderId = r[delOrderIdx] || "";
+    const status = r[delStatusIdx] || "";
+    if (!caseId) return;
+    deliveryMap.set(caseId, { orderId, status });
+  });
 
-  const finalRows =
-    oldDelivery.map(r => [...r]);
-
-  // =====================================
-  // UPDATE MATCHING CASES ONLY
-  // =====================================
-
+  // 4️⃣ Merge / update using Tracking Results CSV
   let processed = 0;
+  const total = trackingCSVMap.size;
 
-  const total =
-    finalRows.length;
-
-  finalRows.forEach(row => {
-
+  trackingCSVMap.forEach((status, caseId) => {
     processed++;
-
     updateProgressContext(
       processed,
       total,
       `Updating Delivery Details (${processed}/${total})`
     );
 
-    const caseId =
-      row[delCaseIdx];
-
-    if (!caseId) {
-      return;
-    }
-
-    // CASE NOT FOUND IN CSV
-    if (!trackingCSVMap.has(caseId)) {
-      return;
-    }
-
-    const csvStatus =
-      normalizeTrackingStatus(
-        trackingCSVMap.get(caseId)
-      );
-
-    // SKIP BLANK CSV STATUS
-    if (!csvStatus) {
-      return;
-    }
-
-    // UPDATE CURRENT STATUS
-    row[delStatusIdx] =
-      csvStatus;
+    // Update existing or add new
+    const existing = deliveryMap.get(caseId) || { orderId: "", status: "" };
+    deliveryMap.set(caseId, {
+      orderId: existing.orderId,
+      status: normalizeTrackingStatus(status)
+    });
   });
 
-  // =====================================
-  // UPDATE UI TABLE
-  // =====================================
+  // 5️⃣ Cleanup: remove cases NOT present in Dump
+  const validDumpCases = new Set(
+    dump.map(r => r[dumpCaseIdx])
+  );
 
-  const dt =
-    dataTablesMap["Delivery Details"];
+  [...deliveryMap.keys()].forEach(caseId => {
+    if (!validDumpCases.has(caseId)) {
+      deliveryMap.delete(caseId);
+    }
+  });
 
+  // 6️⃣ Build final Delivery Details rows
+  const finalRows = [...deliveryMap.entries()].map(
+    ([caseId, data]) => [
+      caseId,
+      data.orderId || "",
+      data.status || ""
+    ]
+  );
+
+  // 7️⃣ Update UI table
+  const dt = dataTablesMap["Delivery Details"];
   dt.clear();
-
-  finalRows.forEach(r => {
-    dt.row.add(["", ...r]);
-  });
-
+  finalRows.forEach(r => dt.row.add(["", ...r]));
   dt.draw(false);
 
-  // =====================================
-  // SAVE TO INDEXEDDB
-  // =====================================
-
-  const writeStore =
-    getStore("readwrite");
-
+  // 8️⃣ Save to IndexedDB
+  const writeStore = getStore("readwrite");
   writeStore.put({
     id: getTeamKey("Delivery Details"),
     team: currentTeam,
@@ -3371,108 +2779,6 @@ function addMarketBlock(name = "", countries = []) {
   adjustMappingModalWidth("marketContainer", "marketModal");
 }
 
-function renderWorkgroupModal(data = []) {
-  const container = document.getElementById("workgroupContainer");
-
-  container.innerHTML = "";
-
-  if (!data.length) {
-    addWorkgroupBlock();
-  } else {
-    data.forEach(w =>
-      addWorkgroupBlock(
-        w.name,
-        w.workgroups
-      )
-    );
-  }
-}
-
-function addWorkgroupBlock(name = "", workgroups = []) {
-
-  const container =
-    document.getElementById("workgroupContainer");
-
-  const card = document.createElement("div");
-  card.className = "workgroup-team-card";
-
-  card.innerHTML = `
-    <div class="workgroup-col workgroup-team-name">
-      <input
-        type="text"
-        placeholder="Workgroup Team Name"
-        value="${name}"
-      >
-    </div>
-
-    <div class="workgroup-col">
-      <div class="workgroup-list"></div>
-
-      <button class="workgroup-add-btn">
-        + Add Workgroup
-      </button>
-    </div>
-
-    <div class="workgroup-col workgroup-actions">
-
-      <button class="workgroup-delete-team-btn">
-        Delete Team
-      </button>
-
-    </div>
-  `;
-
-  const workgroupList =
-    card.querySelector(".workgroup-list");
-
-  const addBtn =
-    card.querySelector(".workgroup-add-btn");
-
-  const deleteBtn =
-    card.querySelector(".workgroup-delete-team-btn");
-
-  function addWorkgroupRow(value = "") {
-
-    const row = document.createElement("div");
-    row.className = "workgroup-item";
-
-    row.innerHTML = `
-      <input
-        type="text"
-        value="${value}"
-        placeholder="Workgroup Name"
-      >
-
-      <button class="workgroup-remove-btn">
-        ✕
-      </button>
-    `;
-
-    row.querySelector(".workgroup-remove-btn")
-      .onclick = () => {
-        row.remove();
-      };
-
-    workgroupList.appendChild(row);
-  }
-
-  if (workgroups.length) {
-    workgroups.forEach(addWorkgroupRow);
-  } else {
-    addWorkgroupRow();
-  }
-
-  addBtn.onclick = () => {
-    addWorkgroupRow();
-  };
-
-  deleteBtn.onclick = () => {
-    card.remove();
-  };
-
-  container.appendChild(card);
-}
-
 document.getElementById("saveTlBtn").onclick = () => {
   const blocks = document.querySelectorAll("#tlContainer .mapping-block");
   const data = [];
@@ -3523,47 +2829,6 @@ document.getElementById("saveMarketBtn").onclick = () => {
   closeModal("marketModal");
 };
 
-document.getElementById("saveWorkgroupBtn").onclick = () => {
-
-  const cards =
-    document.querySelectorAll(
-      "#workgroupContainer .workgroup-team-card"
-    );
-
-  const data = [];
-
-  cards.forEach(card => {
-
-    const name =
-      card.querySelector(
-        ".workgroup-team-name input"
-      ).value.trim();
-
-    if (!name) return;
-
-    const workgroups =
-      [...card.querySelectorAll(".workgroup-item input")]
-        .map(i => i.value.trim())
-        .filter(Boolean);
-
-    data.push({
-      name,
-      workgroups
-    });
-
-  });
-
-  getStore("readwrite").put({
-    id: getTeamKey("WORKGROUP_MAP"),
-    team: currentTeam,
-    sheetName: "WORKGROUP_MAP",
-    data,
-    lastUpdated: new Date().toISOString()
-  });
-
-  closeModal("workgroupModal");
-};
-
 document.getElementById("tlBtn").onclick = async () => {
   if (!requireTeamSelected()) return;
   const req = getStore().get(getTeamKey("TL_MAP"));
@@ -3594,10 +2859,6 @@ document.getElementById("addMarketBtn").onclick = () => {
   addMarketBlock();
 };
 
-document.getElementById("addWorkgroupBtn").onclick = () => {
-  addWorkgroupBlock();
-};
-
 document.getElementById("closedCasesReportBtn")
   .addEventListener("click", () => {
     if (!requireTeamSelected()) return;
@@ -3611,32 +2872,15 @@ document.getElementById("openRepairCasesReportBtn")
   });
 
 document.getElementById("copySoBtn").addEventListener("click", async () => {
-
   if (!requireTeamSelected()) return;
-
   const output = await buildCopySOOrders();
 
   const lines = output
     ? output.split("\n").filter(l => l.trim() !== "")
     : [];
 
-  // =====================================
-  // CACHE VALID OUTPUT
-  // =====================================
-
-  validCSOOutput =
-    lines.length
-      ? lines.join("\n")
-      : "No eligible cases found.";
-
-  showingInvalidCSOs = false;
-
-  // =====================================
-  // DEFAULT VIEW = VALID CSOs
-  // =====================================
-
   document.getElementById("soOutput").value =
-    validCSOOutput;
+    lines.length ? lines.join("\n") : "No eligible cases found.";
 
   document.getElementById("soCount").textContent =
     `Total cases: ${lines.length}`;
@@ -3644,23 +2888,7 @@ document.getElementById("copySoBtn").addEventListener("click", async () => {
   document.getElementById("soModalTitle").textContent =
     "Copy SO Orders Preview";
 
-  // =====================================
-  // INVALID BUTTON
-  // =====================================
-
-  const invalidBtn =
-    document.getElementById("invalidCsoBtn");
-
-  invalidBtn.style.display =
-    invalidCSOEntries.length
-      ? "inline-block"
-      : "none";
-
-  invalidBtn.textContent = "Invalid CSOs";
-  invalidBtn.classList.remove("invalid-active");
-
-  document.getElementById("soModal").style.display =
-    "flex";
+  document.getElementById("soModal").style.display = "flex";
 });
 
 document.getElementById("copyTrackingBtn").addEventListener("click", async () => {
@@ -3670,15 +2898,6 @@ document.getElementById("copyTrackingBtn").addEventListener("click", async () =>
   const lines = output
     ? output.split("\n").filter(l => l.trim())
     : [];
-
-  showingInvalidCSOs = false;
-
-  document.getElementById("invalidCsoBtn")
-    .style.display = "none";
-  document.getElementById("invalidCsoBtn")
-    .textContent = "Invalid CSOs";
-  document.getElementById("invalidCsoBtn")
-    .classList.remove("invalid-active");
 
   document.getElementById("soOutput").value =
     lines.length ? lines.join("\n") : "No eligible tracking URLs found.";
@@ -3695,67 +2914,6 @@ document.getElementById("copyTrackingBtn").addEventListener("click", async () =>
 document.getElementById("closeModalBtn").addEventListener("click", () => {
   document.getElementById("soModal").style.display = "none";
 });
-
-document.getElementById("invalidCsoBtn")
-  .addEventListener("click", () => {
-
-    const btn =
-      document.getElementById("invalidCsoBtn");
-
-    // =====================================
-    // SHOW INVALID CSOs
-    // =====================================
-
-    if (!showingInvalidCSOs) {
-
-      const output = invalidCSOEntries.length
-        ? invalidCSOEntries
-            .map(x =>
-              `${x.caseId},${x.cso || "Blank"}`
-            )
-            .join("\n")
-        : "No invalid CSOs found.";
-
-      document.getElementById("soOutput").value =
-        output;
-
-      document.getElementById("soCount").textContent =
-        `Invalid CSOs: ${invalidCSOEntries.length}`;
-
-      document.getElementById("soModalTitle").textContent =
-        "Invalid CSO Cases";
-
-      btn.textContent = "Valid CSOs";
-      btn.classList.add("invalid-active");
-
-      showingInvalidCSOs = true;
-
-      return;
-    }
-
-    // =====================================
-    // SHOW VALID CSOs
-    // =====================================
-
-    const validLines =
-      validCSOOutput
-        .split("\n")
-        .filter(x => x.trim() !== "");
-
-    document.getElementById("soOutput").value =
-      validCSOOutput;
-
-    document.getElementById("soCount").textContent =
-      `Total cases: ${validLines.length}`;
-
-    document.getElementById("soModalTitle").textContent =
-      "Copy SO Orders Preview";
-
-    btn.textContent = "Invalid CSOs";
-    btn.classList.remove("invalid-active");
-
-    showingInvalidCSOs = false;
-  });
 
 document.getElementById("copyToClipboardBtn").addEventListener("click", async () => {
   const text = document.getElementById("soOutput").value;
@@ -3901,7 +3059,7 @@ async function buildRepairCases() {
               ?.[9] || ""
           )
         : "",
-      delivery.find(x => x[0] === caseId)?.[3] || "",
+      delivery.find(x => x[0] === caseId)?.[2] || "",
       partNumber,
       partName,
       d[16],
@@ -4109,7 +3267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (!lastTeam) {
     document.querySelectorAll(
-      ".action-bar button, #processBtn, #workgroupBtn"
+      ".action-bar button, #processBtn"
     ).forEach(btn => btn.disabled = true);
   }
   
@@ -4140,17 +3298,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 document.getElementById("downloadUploadExcelBtn")
   .addEventListener("click", downloadUploadExcel);
-
-document.getElementById("workgroupBtn").onclick = async () => {
-  if (!requireTeamSelected()) return;
-
-  const req = getStore().get(getTeamKey("WORKGROUP_MAP"));
-
-  req.onsuccess = () => {
-    renderWorkgroupModal(req.result?.data || []);
-    openModal("workgroupModal");
-  };
-};
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
