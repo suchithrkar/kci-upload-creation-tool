@@ -3405,21 +3405,27 @@ function addWorkgroupBlock(name = "", workgroups = []) {
         value="${name}"
       >
     </div>
-
+  
     <div class="workgroup-col">
       <div class="workgroup-list"></div>
-
-      <button class="workgroup-add-btn">
-        + Add Workgroup
-      </button>
     </div>
-
+  
     <div class="workgroup-col workgroup-actions">
-
-      <button class="workgroup-delete-team-btn">
-        Delete Team
+  
+      <button
+        class="workgroup-add-btn"
+        title="Add Workgroup"
+      >
+        +
       </button>
-
+  
+      <button
+        class="workgroup-delete-team-btn"
+        title="Delete Team"
+      >
+        🗑
+      </button>
+  
     </div>
   `;
 
