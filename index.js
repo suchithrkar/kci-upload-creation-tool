@@ -173,7 +173,9 @@ const TABLE_SCHEMAS = {
     "OTC Code",
     "TL",
     "SBD",
-    "Market"
+    "Market",
+    "Workgroup",
+    "Team"
   ]
 };
 
@@ -3981,6 +3983,7 @@ async function buildClosedCasesReport() {
   const repair = teamData.find(x => x.sheetName === "Repair Cases")?.rows || [];
   const tlMap = teamData.find(x => x.sheetName === "TL_MAP")?.data || [];
   const marketMap = teamData.find(x => x.sheetName === "MARKET_MAP")?.data || [];
+  const workgroupMap = teamData.find(x => x.sheetName === "WORKGROUP_MAP")?.data || [];
 
   const rows = [];
 
@@ -4016,23 +4019,34 @@ async function buildClosedCasesReport() {
         )
       )?.name || "Unassigned";
 
-      closedMap.set(c[0], [
-        c[0],
-        c[1],          // ✅ Customer Name (Primary Contact)
-        c[2],          // Created On
-        c[7],          // Created By
-        c[3],          // Modified By
-        c[4],          // Modified On
-        c[5],          // Case Closed Date
-        closedBy,
-        c[10],          // Country
-        c[6],          // Case Resolution Code
-        c[9],          // Case Owner
-        c[11],         // OTC Code
-        tl,            // ✅ TL (from TL modal)
-        repairRow?.[10] || "",   // SBD (unchanged)
-        market         // ✅ Market (from Market modal)
-      ]);
+    const workgroup = c[12] || "";
+
+    const assignedTeam =
+      workgroupMap.find(team =>
+        team.workgroups.some(w =>
+          normalizeText(w) === normalizeText(workgroup)
+        )
+      )?.name || "";  
+
+    closedMap.set(c[0], [
+      c[0],
+      c[1],          // ✅ Customer Name (Primary Contact)
+      c[2],          // Created On
+      c[7],          // Created By
+      c[3],          // Modified By
+      c[4],          // Modified On
+      c[5],          // Case Closed Date
+      closedBy,
+      c[10],          // Country
+      c[6],          // Case Resolution Code
+      c[9],          // Case Owner
+      c[11],         // OTC Code
+      tl,            // ✅ TL (from TL modal)
+      repairRow?.[10] || "",   // SBD (unchanged)
+      market,        // ✅ Market (from Market modal)
+      workgroup,     // Workgroup
+      assignedTeam   // Team assignment as per Workgroup
+    ]);
     
     newlyClosedIds.add(c[0]);
   });
