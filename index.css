@@ -993,20 +993,19 @@ table.dataTable th {
 
 /* Download */
 .workgroup-download-btn {
-  width: 100%;
-
+  width: 32px;
+  height: 32px;
   background: #151923;
   color: #fff;
-
   border: none;
-  border-radius: 4px;
-
-  padding: 7px 10px;
-
-  font-size: 12px;
+  border-radius: 6px;
+  padding: 0;
+  font-size: 18px;
   font-weight: 600;
-
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Delete team */
