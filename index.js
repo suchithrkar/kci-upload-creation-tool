@@ -4141,6 +4141,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 document.getElementById("downloadUploadExcelBtn")
   .addEventListener("click", downloadUploadExcel);
 
+document.getElementById("downloadActiveSheetBtn")
+  .addEventListener("click", downloadActiveSheet);
+
 document.getElementById("workgroupBtn").onclick = async () => {
   if (!requireTeamSelected()) return;
 
@@ -4471,3 +4474,105 @@ async function downloadUploadExcel() {
   }
 }
 
+async function downloadActiveSheet() {
+
+  if (!requireTeamSelected()) return;
+
+  try {
+
+    // ----------------------------------
+    // Find active sheet tab
+    // ----------------------------------
+
+    const activeTab =
+      document.querySelector(".sheet-tab.active");
+
+    if (!activeTab) {
+      alert("No active sheet selected.");
+      return;
+    }
+
+    const sheetName =
+      activeTab.textContent.trim();
+
+    // ----------------------------------
+    // Load sheet data from IndexedDB
+    // ----------------------------------
+
+    const record = await new Promise(resolve => {
+
+      const req =
+        getStore("readonly")
+          .get(getTeamKey(sheetName));
+
+      req.onsuccess = () =>
+        resolve(req.result);
+
+      req.onerror = () =>
+        resolve(null);
+
+    });
+
+    if (!record) {
+      alert(`No data found for "${sheetName}"`);
+      return;
+    }
+
+    const rows = record.rows || [];
+
+    // ----------------------------------
+    // Create workbook
+    // ----------------------------------
+
+    const wb = XLSX.utils.book_new();
+
+    const sheetData = [
+      TABLE_SCHEMAS[sheetName],
+      ...rows
+    ];
+
+    const ws =
+      XLSX.utils.aoa_to_sheet(sheetData);
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      ws,
+      sheetName
+    );
+
+    // ----------------------------------
+    // Build filename
+    // ----------------------------------
+
+    const today = new Date();
+
+    const dd =
+      String(today.getDate()).padStart(2, "0");
+
+    const mm =
+      String(today.getMonth() + 1).padStart(2, "0");
+
+    const yyyy =
+      today.getFullYear();
+
+    const safeSheetName =
+      sheetName.replace(/[\\/:*?"<>|]/g, "_");
+
+    const fileName =
+      `${currentTeam}_${safeSheetName}_${dd}-${mm}-${yyyy}.xlsx`;
+
+    // ----------------------------------
+    // Download
+    // ----------------------------------
+
+    XLSX.writeFile(wb, fileName);
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert(
+      "Failed to download active sheet."
+    );
+  }
+}
