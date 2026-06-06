@@ -155,6 +155,7 @@ const TABLE_SCHEMAS = {
     "Product Name",
     "Email Status",
     "DNAP",
+    "Workgroup",
     "Team"
   ],
 
@@ -3817,14 +3818,16 @@ async function buildRepairCases() {
       : null;
 
   const sortedTeamMap = new Map();
-    sorted.forEach(row => {
-      const caseId = row[0];
-      const team = row[5] || "";
-    
-      if (caseId) {
-        sortedTeamMap.set(caseId, team);
-      }
-    });
+  const sortedWorkgroupMap = new Map();
+  
+  sorted.forEach(row => {
+    const caseId = row[0];
+  
+    if (!caseId) return;
+  
+    sortedWorkgroupMap.set(caseId, row[4] || "");
+    sortedTeamMap.set(caseId, row[5] || "");
+  });
 
   const validCases = dump.filter(r =>
     ["parts shipped", "onsite solution", "offsite solution"]
@@ -3854,8 +3857,8 @@ async function buildRepairCases() {
         m.countries.some(c => normalizeText(c) === normalizeText(d[6]))
       )?.name || "";
 
-    const assignedTeam =
-      sortedTeamMap.get(caseId) || "";
+    const assignedTeam = sortedTeamMap.get(caseId) || "";
+    const assignedWorkgroup = sortedWorkgroupMap.get(caseId) || "";
 
     const onsiteRFC =
       calculatedResolution === "Onsite Solution"
@@ -3932,6 +3935,7 @@ async function buildRepairCases() {
       d[17],
       d[10],
       dnap,
+      assignedWorkgroup,
       assignedTeam
     ];
     
