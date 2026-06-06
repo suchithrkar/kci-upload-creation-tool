@@ -153,7 +153,8 @@ const TABLE_SCHEMAS = {
     "Serial Number",
     "Product Name",
     "Email Status",
-    "DNAP"
+    "DNAP",
+    "Team"
   ],
 
   "Closed Cases Data": [
@@ -3797,6 +3798,7 @@ async function buildRepairCases() {
   const so = teamData.find(x => x.sheetName === "SO")?.rows || [];
   const cso = teamData.find(x => x.sheetName === "CSO Status")?.rows || [];
   const delivery = teamData.find(x => x.sheetName === "Delivery Details")?.rows || [];
+  const sorted = teamData.find(x => x.sheetName === "Sorted")?.rows || [];
 
   const tlMap = teamData.find(x => x.sheetName === "TL_MAP")?.data || [];
   const marketMap = teamData.find(x => x.sheetName === "MARKET_MAP")?.data || [];
@@ -3804,6 +3806,16 @@ async function buildRepairCases() {
     teamData.find(x => x.sheetName === "SBD Cut Off Times")?.periods
       ? teamData.find(x => x.sheetName === "SBD Cut Off Times")
       : null;
+
+  const sortedTeamMap = new Map();
+    sorted.forEach(row => {
+      const caseId = row[0];
+      const team = row[5] || "";
+    
+      if (caseId) {
+        sortedTeamMap.set(caseId, team);
+      }
+    });
 
   const validCases = dump.filter(r =>
     ["parts shipped", "onsite solution", "offsite solution"]
@@ -3832,6 +3844,9 @@ async function buildRepairCases() {
       marketMap.find(m =>
         m.countries.some(c => normalizeText(c) === normalizeText(d[6]))
       )?.name || "";
+
+    const assignedTeam =
+      sortedTeamMap.get(caseId) || "";
 
     const onsiteRFC =
       calculatedResolution === "Onsite Solution"
@@ -3907,7 +3922,8 @@ async function buildRepairCases() {
       d[16],
       d[17],
       d[10],
-      dnap
+      dnap,
+      assignedTeam
     ];
     
     // 🔥 UPSERT: overwrite if exists, else add
