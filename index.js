@@ -103,7 +103,8 @@ const TABLE_SCHEMAS = {
     "Incoming Channel",
     "Owner",
     "Country",
-    "OTC Code"
+    "OTC Code",
+    "Workgroup (Owning User) (User)"
   ],
 
   "Sorted": [
