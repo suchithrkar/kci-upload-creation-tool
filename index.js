@@ -3422,7 +3422,14 @@ function addWorkgroupBlock(name = "", workgroups = []) {
       >
         +
       </button>
-  
+      
+      <button
+        class="workgroup-download-btn"
+        title="Download Upload File"
+      >
+        ⭳
+      </button>
+      
       <button
         class="workgroup-delete-team-btn"
         title="Delete Team"
@@ -3438,7 +3445,10 @@ function addWorkgroupBlock(name = "", workgroups = []) {
 
   const addBtn =
     card.querySelector(".workgroup-add-btn");
-
+  
+  const downloadBtn =
+    card.querySelector(".workgroup-download-btn");
+  
   const deleteBtn =
     card.querySelector(".workgroup-delete-team-btn");
 
@@ -3475,6 +3485,21 @@ function addWorkgroupBlock(name = "", workgroups = []) {
 
   addBtn.onclick = () => {
     addWorkgroupRow();
+  };
+
+  downloadBtn.onclick = async () => {
+  
+    const teamName =
+      card.querySelector(
+        ".workgroup-team-name input"
+      ).value.trim();
+  
+    if (!teamName) {
+      alert("Workgroup Team Name is blank.");
+      return;
+    }
+  
+    await downloadWorkgroupUploadExcel(teamName);
   };
 
   deleteBtn.onclick = () => {
@@ -4512,6 +4537,123 @@ async function downloadUploadExcel() {
   } catch (err) {
     console.error("Download Upload Excel failed:", err);
     alert("Failed to generate Excel file.");
+  }
+}
+
+async function downloadWorkgroupUploadExcel(teamName) {
+
+  try {
+
+    const store = getStore("readonly");
+
+    const allData = await new Promise(res => {
+      const req = store.getAll();
+      req.onsuccess = () => res(req.result);
+    });
+
+    const teamData =
+      allData.filter(r => r.team === currentTeam);
+
+    const sorted =
+      teamData.find(r => r.sheetName === "Sorted")?.rows || [];
+
+    const repairCases =
+      teamData.find(r => r.sheetName === "Repair Cases")?.rows || [];
+
+    const closedCases =
+      teamData.find(r => r.sheetName === "Closed Cases Data")?.rows || [];
+
+    const sortedCaseIdx =
+      TABLE_SCHEMAS["Sorted"].indexOf("Case ID");
+
+    const sortedTeamIdx =
+      TABLE_SCHEMAS["Sorted"].indexOf("Team");
+
+    const repairCaseIdIdx =
+      TABLE_SCHEMAS["Repair Cases"].indexOf("Case ID");
+
+    const closedTeamIdx =
+      TABLE_SCHEMAS["Closed Cases Data"].indexOf("Team");
+
+    const matchingCaseIds = new Set();
+
+    sorted.forEach(row => {
+
+      if (
+        normalizeText(row[sortedTeamIdx]) ===
+        normalizeText(teamName)
+      ) {
+        matchingCaseIds.add(
+          row[sortedCaseIdx]
+        );
+      }
+
+    });
+
+    const filteredRepairCases =
+      repairCases.filter(row =>
+        matchingCaseIds.has(
+          row[repairCaseIdIdx]
+        )
+      );
+
+    const filteredClosedCases =
+      closedCases.filter(row =>
+        normalizeText(
+          row[closedTeamIdx]
+        ) === normalizeText(teamName)
+      );
+
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([
+        TABLE_SCHEMAS["Repair Cases"],
+        ...filteredRepairCases
+      ]),
+      "Repair Cases"
+    );
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([
+        TABLE_SCHEMAS["Closed Cases Data"],
+        ...filteredClosedCases
+      ]),
+      "Closed Cases Data"
+    );
+
+    const today = new Date();
+
+    const dd =
+      String(today.getDate()).padStart(2, "0");
+
+    const mm =
+      String(today.getMonth() + 1).padStart(2, "0");
+
+    const yyyy =
+      today.getFullYear();
+
+    const safeTeamName =
+      teamName.replace(
+        /[\\/:*?"<>|]/g,
+        "_"
+      );
+
+    XLSX.writeFile(
+      wb,
+      `KCI_Upload_File_${safeTeamName}_${dd}-${mm}-${yyyy}.xlsx`
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert(
+      "Failed to generate workgroup upload file."
+    );
+
   }
 }
 
